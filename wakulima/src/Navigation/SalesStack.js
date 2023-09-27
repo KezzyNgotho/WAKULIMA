@@ -3,9 +3,9 @@ import React from "react";
 import { useTheme } from "react-native-paper";
 import { Image } from "react-native";
 
-
+import OrdersScreen from "../Screens/OrderScreen";
 import SalesOrdersAdminScreen from "../Screens/SalesOrdersAdminScreen";
-
+import SalesFeedScreen from "../Screens/SalesFeedScreen";
 import {  SalesStackNavigator, ContactStackNavigator, } from "./StackNavigator";
 
 import PaymentMode from "../Screens/PaymentMode";
@@ -36,26 +36,26 @@ const SalesBottomTabNavigator = () => {
         name="SalespersonInterface" component={SalesStackNavigator} />
       <Tab.Screen
         options={{
-          tabBarLabel: 'Payment',
+          tabBarLabel: 'Orders',
           tabBarIcon: ({ color }) => (
             <Image
-            source={require('../assets/icons8-feed-50.png')}  
+            source={require('../assets/icons8-logistics-32.png')}  
               style={{  width: 37, height: 30 }}
             />
           ),
         }}
-        name="Bills" component={PaymentMode} />
+        name="Orders" component={OrdersScreen} />
       <Tab.Screen
         options={{
-          tabBarLabel: 'Products',
+          tabBarLabel: 'Feeds',
           tabBarIcon: ({ color }) => (
             <Image
-               source={require('../assets/icons8-test-account-40.png')}  
+               source={require('../assets/icons8-feed-50.png')}  
               style={{  width: 37, height: 30 }}
             />
           ),
         }}
-        name="Money" component={AvailableProducts} />
+        name="Feeds" component={SalesFeedScreen} />
      
     </Tab.Navigator>
   );
