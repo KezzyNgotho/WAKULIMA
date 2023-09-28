@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import {
   Button,
@@ -15,8 +14,8 @@ import {
   TextInput,
   Modal,
   Portal,
-  FAB,
   List,
+  Snackbar,
 } from 'react-native-paper';
 import firebase from '../components/firebase';
 import ImagePicker from 'react-native-image-crop-picker';
@@ -28,28 +27,35 @@ const SalespersonInterface = () => {
   const [selectedType, setSelectedType] = useState('');
   const [isAddProductModalVisible, setAddProductModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [productImage, setProductImage] = useState(null);
+  const [productImageUri, setProductImageUri] = useState(null);
+
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   const upload = () => {
     ImagePicker.openPicker({
       width: 300,
       height: 400,
       cropping: true,
-      includeBase64: true,
     })
-      .then(image => {
+      .then((image) => {
         console.log(image);
+        setProductImageUri(image.path); // Set the selected image URI
       })
-      .catch(err => console.log(err));
+      .catch((err) => {
+        console.log(err);
+        setSnackbarMessage('Image selection failed.');
+        setSnackbarVisible(true);
+      });
   };
 
   useEffect(() => {
     const productsRef = firebase.firestore().collection('products');
 
-    productsRef.onSnapshot(snapshot => {
+    productsRef.onSnapshot((snapshot) => {
       const productList = [];
-      snapshot.forEach(doc => {
-        productList.push({id: doc.id, ...doc.data()});
+      snapshot.forEach((doc) => {
+        productList.push({ id: doc.id, ...doc.data() });
       });
       setProducts(productList);
     });
@@ -62,27 +68,25 @@ const SalespersonInterface = () => {
         name: newProductName,
         price: parseFloat(newProductPrice),
         type: selectedType,
-        /* imageUrl: productImage?.uri, */
+        imageUrl: productImageUri,
       };
 
       productsRef
         .doc(editingProduct.id)
         .update(updatedProduct)
         .then(() => {
-          const updatedProducts = products.map(product =>
-            product.id === editingProduct.id
-              ? {...product, ...updatedProduct}
-              : product,
+          const updatedProducts = products.map((product) =>
+            product.id === editingProduct.id ? { ...product, ...updatedProduct } : product
           );
           setProducts(updatedProducts);
           setNewProductName('');
           setNewProductPrice('');
           setSelectedType('');
-          /*  setProductImage(null); */
+          setProductImageUri(null);
           setAddProductModalVisible(false);
           setEditingProduct(null);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error('Error updating product: ', error);
         });
     }
@@ -94,42 +98,22 @@ const SalespersonInterface = () => {
       name: newProductName,
       price: parseFloat(newProductPrice),
       type: selectedType,
-      /*  imageUrl: productImage?.uri, */
+      imageUrl: productImageUri,
     };
 
     productsRef
       .add(newProduct)
-      .then(docRef => {
-        setProducts([...products, {id: docRef.id, ...newProduct}]);
+      .then((docRef) => {
+        setProducts([...products, { id: docRef.id, ...newProduct }]);
         setNewProductName('');
         setNewProductPrice('');
         setSelectedType('');
-        /*  setProductImage(null); */
+        setProductImageUri(null);
         setAddProductModalVisible(false);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error adding product: ', error);
       });
-  };
-
-  const handleSelectImage = () => {
-    const options = {
-      title: 'Select Product Image',
-      storageOptions: {
-        skipBackup: true,
-        path: 'images',
-      },
-    };
-
-    ImagePicker.showImagePicker(options, response => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.error) {
-        console.log('ImagePicker Error: ', response.error);
-      } else {
-        setProductImage(response);
-      }
-    });
   };
 
   return (
@@ -141,7 +125,7 @@ const SalespersonInterface = () => {
           <Card.Content>
             <Title>Our Products:</Title>
             <List.Section>
-              {products.map(product => (
+              {products.map((product) => (
                 <List.Item
                   key={product.id}
                   title={product.name}
@@ -155,6 +139,7 @@ const SalespersonInterface = () => {
                         setNewProductPrice(product.price.toString());
                         setSelectedType(product.type);
                         setEditingProduct(product);
+                        setProductImageUri(product.imageUrl);
                         setAddProductModalVisible(true);
                       }}
                       style={styles.iconContainer}>
@@ -183,7 +168,7 @@ const SalespersonInterface = () => {
           onDismiss={() => {
             setAddProductModalVisible(false);
             setEditingProduct(null);
-            setProductImage(null);
+            setProductImageUri(null);
           }}>
           <Card>
             <Card.Content>
@@ -193,23 +178,23 @@ const SalespersonInterface = () => {
               <TextInput
                 label="Product Name"
                 value={newProductName}
-                onChangeText={text => setNewProductName(text)}
+                onChangeText={(text) => setNewProductName(text)}
                 style={styles.input}
               />
               <TextInput
                 label="Product Price"
                 value={newProductPrice}
-                onChangeText={text => setNewProductPrice(text)}
+                onChangeText={(text) => setNewProductPrice(text)}
                 keyboardType="numeric"
                 style={styles.input}
               />
               <TextInput
                 label="Product Type"
                 value={selectedType}
-                onChangeText={text => setSelectedType(text)}
+                onChangeText={(text) => setSelectedType(text)}
                 style={styles.input}
               />
-
+              <Text>Selected Image URI: {productImageUri}</Text>
               <Button mode="contained" onPress={upload}>
                 Select Image
               </Button>
@@ -224,6 +209,15 @@ const SalespersonInterface = () => {
         </Modal>
       </Portal>
 
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        action={{
+          label: 'OK',
+          onPress: () => setSnackbarVisible(false),
+        }}>
+        {snackbarMessage}
+      </Snackbar>
       {/* Floating Action Button for adding a new product */}
       {/* Replace the FAB component with a custom image */}
       <TouchableOpacity

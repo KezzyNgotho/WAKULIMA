@@ -47,17 +47,11 @@ const CustomerInterface = () => {
     setSearchQuery(query);
   };
 
- /*  const navigateToProductDetails = (product) => {
+  const navigateToProductDetails = product => {
     // Use the navigation hook to navigate to the ProductDetails screen
-    navigation.navigate("ProductDetails", { product });
+    navigation.navigate('ProductDetails', {product});
   };
-   */
-  
-  const navigateToProductDetails = (product) => {
-    // Use the navigation hook to navigate to the ProductDetails screen
-    navigation.navigate("ProductDetails", { product });
-  };
-  
+
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
@@ -91,21 +85,24 @@ const CustomerInterface = () => {
         data={filteredProducts}
         renderItem={({item}) => (
           <TouchableOpacity
-          style={styles.productCard}
-          onPress={() => navigateToProductDetails(item)} 
-        >
+            style={styles.productCard}
+            onPress={() => navigateToProductDetails(item)}>
             <View style={styles.productCardContent}>
+              {/* Display the product image */}
+              <Image
+                source={{uri: item.imageUrl}}
+                style={styles.productImage}
+              />
+
+             
               <Text style={styles.productName}>{item.name}</Text>
               <Text style={styles.productDescription}>
                 Description: {item.productDescription}
               </Text>
               <Text style={styles.productType}>Type: {item.type}</Text>
               <Text style={styles.productPrice}>
-                Price: $
-                {item.price ? item.price.toFixed(2) : 'N/A'}
+                Price: ${item.price ? item.price.toFixed(2) : 'N/A'}
               </Text>
-
-              
             </View>
           </TouchableOpacity>
         )}
@@ -117,6 +114,13 @@ const CustomerInterface = () => {
 };
 
 const styles = StyleSheet.create({
+  productImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'cover',
+    marginBottom: 8,
+    backgroundColor:'transparent',
+  },
   container: {
     flex: 1,
     padding: 16,
@@ -183,7 +187,7 @@ const styles = StyleSheet.create({
   productDescription: {
     color: 'black',
     marginBottom: 8,
-    fontWeight:"bold,"
+    fontWeight: 'bold,',
     // Replace with your custom font or system font
   },
   productPrice: {
@@ -193,7 +197,7 @@ const styles = StyleSheet.create({
   productType: {
     color: '#00008B',
     fontSize: 14,
-    fontWeight:'bold' // Replace with your custom font or system font
+    fontWeight: 'bold', // Replace with your custom font or system font
   },
   actionButtonImage: {
     width: 29,

@@ -1,114 +1,247 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
+import {
+  Button,
+  Card,
+  Title,
+  TextInput,
+  Modal,
+  Portal,
+  List,
+  Snackbar,
+} from 'react-native-paper';
+import firebase from '../components/firebase';
+import ImagePicker from 'react-native-image-crop-picker';
 
-const AddProductScreen = () => {
-  const [productName, setProductName] = useState('');
-  const [productDescription, setProductDescription] = useState('');
-  const [varietyFields, setVarietyFields] = useState([{ variety: '', quantity: '', price: '' }]);
+const SalespersonInterface = () => {
+  const [products, setProducts] = useState([]);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [isAddProductModalVisible, setAddProductModalVisible] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [productImageUri, setProductImageUri] = useState(null);
 
-  const addVarietyField = () => {
-    setVarietyFields([...varietyFields, { variety: '', quantity: '', price: '' }]);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  const upload = () => {
+    ImagePicker.openPicker({
+      width: 300,
+      height: 400,
+      cropping: true,
+    })
+      .then((image) => {
+        console.log(image);
+        setProductImageUri(image.path); // Set the selected image URI
+      })
+      .catch((err) => {
+        console.log(err);
+        setSnackbarMessage('Image selection failed.');
+        setSnackbarVisible(true);
+      });
   };
 
-  const updateVarietyField = (index, field, value) => {
-    const updatedVarietyFields = [...varietyFields];
-    updatedVarietyFields[index][field] = value;
-    setVarietyFields(updatedVarietyFields);
-  };
+  useEffect(() => {
+    const productsRef = firebase.firestore().collection('products');
 
-  const removeVarietyField = (index) => {
-    const updatedVarietyFields = [...varietyFields];
-    updatedVarietyFields.splice(index, 1);
-    setVarietyFields(updatedVarietyFields);
-  };
+    productsRef.onSnapshot((snapshot) => {
+      const productList = [];
+      snapshot.forEach((doc) => {
+        productList.push({ id: doc.id, ...doc.data() });
+      });
+      setProducts(productList);
+    });
+  }, []);
 
-  const handleSubmit = async () => {
-    if (!productName || !productDescription || varietyFields.length === 0) {
-      Alert.alert('Missing Information', 'Please fill in all fields and add at least one variety.');
-      return;
-    }
-
-    try {
-      const product = {
-        name: productName,
-        description: productDescription,
-        varieties: varietyFields,
+  const handleEditProduct = () => {
+    if (editingProduct) {
+      const productsRef = firebase.firestore().collection('products');
+      const updatedProduct = {
+        name: newProductName,
+        price: parseFloat(newProductPrice),
+        type: selectedType,
+        imageUrl: productImageUri,
       };
 
-      await firestore().collection('products').add(product);
-
-      setProductName('');
-      setProductDescription('');
-      setVarietyFields([]);
-
-      Alert.alert('Product Added', 'Product has been added successfully.');
-    } catch (error) {
-      console.error('Error adding product:', error);
-      Alert.alert('Error', 'An error occurred while adding the product. Please try again later.');
+      productsRef
+        .doc(editingProduct.id)
+        .update(updatedProduct)
+        .then(() => {
+          const updatedProducts = products.map((product) =>
+            product.id === editingProduct.id ? { ...product, ...updatedProduct } : product
+          );
+          setProducts(updatedProducts);
+          setNewProductName('');
+          setNewProductPrice('');
+          setSelectedType('');
+          setProductImageUri(null);
+          setAddProductModalVisible(false);
+          setEditingProduct(null);
+        })
+        .catch((error) => {
+          console.error('Error updating product: ', error);
+        });
     }
+  };
+  const handleDeleteProduct = (productId) => {
+    const productsRef = firebase.firestore().collection('products');
+    productsRef
+      .doc(productId)
+      .delete()
+      .then(() => {
+        const updatedProducts = products.filter(
+          (product) => product.id !== productId
+        );
+        setProducts(updatedProducts);
+      })
+      .catch((error) => {
+        console.error('Error deleting product: ', error);
+      });
+  };
+  
+  const handleAddProduct = () => {
+    const productsRef = firebase.firestore().collection('products');
+    const newProduct = {
+      name: newProductName,
+      price: parseFloat(newProductPrice),
+      type: selectedType,
+      imageUrl: productImageUri,
+    };
+
+    productsRef
+      .add(newProduct)
+      .then((docRef) => {
+        setProducts([...products, { id: docRef.id, ...newProduct }]);
+        setNewProductName('');
+        setNewProductPrice('');
+        setSelectedType('');
+        setProductImageUri(null);
+        setAddProductModalVisible(false);
+      })
+      .catch((error) => {
+        console.error('Error adding product: ', error);
+      });
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Add Product</Text>
-      <View style={styles.form}>
-        <TextInput
-          label="Product Name"
-          placeholder="Enter product name"
-          value={productName}
-          onChangeText={(text) => setProductName(text)}
-          style={styles.input}
+    <ScrollView style={styles.container}>
+      <Text style={styles.header}>Salesperson Interface</Text>
+
+      <View style={styles.contentContainer}>
+        <Card style={styles.productCard}>
+          <Card.Content>
+            <Title>Our Products:</Title>
+            <List.Section>
+  {products.map((product) => (
+    <List.Item
+      key={product.id}
+      title={product.name}
+      description={`Price: $${
+        product.price ? product.price.toFixed(2) : 'N/A'
+      } | Type: ${product.type}`}
+      left={() => (
+        <Image
+          source={{ uri: product.imageUrl }}
+          style={styles.productImage}
+          resizeMode="cover"
         />
-        <TextInput
-          label="Product Description"
-          placeholder="Enter product description"
-          value={productDescription}
-          onChangeText={(text) => setProductDescription(text)}
-          style={[styles.input, styles.descriptionInput]}
-          multiline
-          numberOfLines={4}
-        />
-        {varietyFields.map((varietyField, index) => (
-          <View key={index} style={styles.varietyContainer}>
-            <TextInput
-              label={`Variety ${index + 1}`}
-              placeholder="Enter variety"
-              value={varietyField.variety}
-              onChangeText={(text) => updateVarietyField(index, 'variety', text)}
-              style={styles.input}
+      )}
+      right={() => (
+        <View style={styles.iconContainer}>
+          <TouchableOpacity onPress={() => handleDeleteProduct(product.id)}>
+            <Image
+              source={require('../assets/icons8-delete-30.png')}
+              style={styles.imageIcon}
+              resizeMode="contain"
             />
-            <TextInput
-              label={`Quantity ${index + 1}`}
-              placeholder="Enter quantity"
-              value={varietyField.quantity}
-              onChangeText={(text) => updateVarietyField(index, 'quantity', text)}
-              keyboardType="numeric"
-              style={styles.input}
-            />
-            <TextInput
-              label={`Price ${index + 1}`}
-              placeholder="Enter price"
-              value={varietyField.price}
-              onChangeText={(text) => updateVarietyField(index, 'price', text)}
-              keyboardType="numeric"
-              style={styles.input}
-            />
-            <TouchableOpacity onPress={() => removeVarietyField(index)}>
-              <Text style={styles.removeButton}>Remove Variety</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-        <TouchableOpacity onPress={addVarietyField} style={styles.addButton}>
-          <Text style={styles.addButtonText}>Add Variety</Text>
-        </TouchableOpacity>
-        {varietyFields.length === 0 && (
-          <Text style={styles.errorMessage}>Please add at least one variety</Text>
-        )}
-        <TouchableOpacity onPress={handleSubmit} style={styles.submitButton}>
-          <Text style={styles.submitButtonText}>Add Product</Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+      )}
+    />
+  ))}
+</List.Section>
+
+          </Card.Content>
+        </Card>
       </View>
+
+      <Portal>
+        <Modal
+          visible={isAddProductModalVisible}
+          onDismiss={() => {
+            setAddProductModalVisible(false);
+            setEditingProduct(null);
+            setProductImageUri(null);
+          }}>
+          <Card>
+            <Card.Content>
+              <Title>
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </Title>
+              <TextInput
+                label="Product Name"
+                value={newProductName}
+                onChangeText={(text) => setNewProductName(text)}
+                style={styles.input}
+              />
+              <TextInput
+                label="Product Price"
+                value={newProductPrice}
+                onChangeText={(text) => setNewProductPrice(text)}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+              <TextInput
+                label="Product Type"
+                value={selectedType}
+                onChangeText={(text) => setSelectedType(text)}
+                style={styles.input}
+              />
+              <Text>Selected Image URI: {productImageUri}</Text>
+              <Button mode="contained" onPress={upload}>
+                Select Image
+              </Button>
+              <Button
+                mode="contained"
+                onPress={editingProduct ? handleEditProduct : handleAddProduct}
+                style={styles.addButton}>
+                {editingProduct ? 'Save Changes' : 'Add Product'}
+              </Button>
+            </Card.Content>
+          </Card>
+        </Modal>
+      </Portal>
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        action={{
+          label: 'OK',
+          onPress: () => setSnackbarVisible(false),
+        }}>
+        {snackbarMessage}
+      </Snackbar>
+      {/* Floating Action Button for adding a new product */}
+      {/* Replace the FAB component with a custom image */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          setEditingProduct(null);
+          setAddProductModalVisible(true);
+        }}>
+        <Image
+          source={require('../assets/icons8-plus-24.png')} // Replace with the correct path to your custom image
+          style={styles.customFabIcon}
+        />
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -116,62 +249,45 @@ const AddProductScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f2f2f2',
     padding: 16,
+    backgroundColor: '#F5F5F5',
   },
-  title: {
+  header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  form: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
+  contentContainer: {
+    marginBottom: 16,
+  },
+  productCard: {
+    elevation: 4,
+  },
+  iconContainer: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  imageIcon: {
+    width: 30,
+    height: 30,
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 16,
-    padding: 10,
-  },
-  descriptionInput: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  varietyContainer: {
-    marginBottom: 16,
-  },
-  removeButton: {
-    color: 'red',
-    textAlign: 'right',
+    marginBottom: 10,
   },
   addButton: {
-    backgroundColor: 'blue',
-    padding: 12,
-    borderRadius: 5,
-    marginTop: 16,
+    marginBottom: 10,
   },
-  addButtonText: {
-    color: 'white',
-    textAlign: 'center',
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
-  errorMessage: {
-    color: 'red',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  submitButton: {
-    backgroundColor: 'green',
-    padding: 12,
-    borderRadius: 5,
-    marginTop: 16,
-  },
-  submitButtonText: {
-    color: 'white',
-    textAlign: 'center',
+
+  customFabIcon: {
+    width: 50, // Adjust the width as needed
+    height: 50, // Adjust the height as needed
   },
 });
 
-export default AddProductScreen;
+export default SalespersonInterface;
