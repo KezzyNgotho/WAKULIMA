@@ -6,94 +6,50 @@ import {
   StyleSheet,
   FlatList,
   Image,
-  Button,
-  Animated,
-  Easing,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { TextInput } from "react-native-paper";
 import firebase from "../components/firebase";
-import VarietySelector from "../components/VarietySelector";
 
 const CustomerInterface = () => {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [selectedVariety, setSelectedVariety] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [animation] = useState(new Animated.Value(0));
+  const [filteredProducts, setFilteredProducts] = useState([]);
 
   useEffect(() => {
     const productsRef = firebase.firestore().collection("products");
 
-    productsRef.onSnapshot((snapshot) => {
+    const unsubscribe = productsRef.onSnapshot((snapshot) => {
       const productList = [];
       snapshot.forEach((doc) => {
         productList.push({ id: doc.id, ...doc.data() });
       });
       setProducts(productList);
+      setFilteredProducts(productList); // Initialize filtered products with all products
     });
+
+    return () => unsubscribe();
   }, []);
 
-  const filteredProducts = products.filter((product) =>
-    product.productName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const fetchVarietiesForProduct = (product) => {
-    const productRef = firebase
-      .firestore()
-      .collection("products")
-      .doc(product.id)
-      .collection("varieties"); // Reference the subcollection "varieties" of the selected product
-
-    productRef.onSnapshot((snapshot) => {
-      const varietyList = [];
-      snapshot.forEach((doc) => {
-        varietyList.push({ id: doc.id, ...doc.data() });
-      });
-
-      setSelectedProduct(product);
-      setSelectedVariety(varietyList[0]); // Select the first variety by default
-      animateCardIn();
+  const handleSearch = (query) => {
+    // Filter products based on the search query
+    const filtered = products.filter((product) => {
+      if (product.productName && query) {
+        const productNameLower = product.productName.toLowerCase();
+        const queryLower = query.toLowerCase();
+        return productNameLower.includes(queryLower);
+      }
+      return false;
     });
+
+    setFilteredProducts(filtered);
+    setSearchQuery(query);
   };
 
   const navigateToProductDetails = (product) => {
-    fetchVarietiesForProduct(product);
-  };
-
-  const animateCardIn = () => {
-    Animated.timing(animation, {
-      toValue: 1,
-      duration: 300,
-      easing: Easing.ease,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const animateCardOut = () => {
-    Animated.timing(animation, {
-      toValue: 0,
-      duration: 300,
-      easing: Easing.ease,
-      useNativeDriver: false,
-    }).start(() => {
-      setSelectedProduct(null);
-      setSelectedVariety("");
-      setQuantity(1);
-    });
-  };
-
-  const cardTranslateY = animation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [100, 0],
-  });
-
-  const addToCart = () => {
-    // Add the selected product, variety, and quantity to the cart
-    // You can implement this logic as per your cart management system
-    console.log("Added to cart:", selectedProduct.productName, selectedVariety.varietyName, quantity);
+    // You can add navigation logic here if needed
+    console.log("Selected product:", product);
   };
 
   return (
@@ -125,7 +81,7 @@ const CustomerInterface = () => {
         style={styles.searchInput}
         placeholder="Search for products..."
         value={searchQuery}
-        onChangeText={setSearchQuery}
+        onChangeText={handleSearch}
       />
       <FlatList
         data={filteredProducts}
@@ -145,53 +101,13 @@ const CustomerInterface = () => {
         keyExtractor={(item) => item.id}
         numColumns={2}
       />
-      {selectedProduct && (
-        <Animated.View
-          style={[
-            styles.selectedProductCard,
-            { transform: [{ translateY: cardTranslateY }] },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={animateCardOut}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-          <Image
-            source={{ uri: selectedProduct.productImage }}
-            style={styles.productImage}
-          />
-          <View style={styles.productCardContent}>
-            <Text style={styles.productName}>{selectedProduct.productName}</Text>
-            <Text style={styles.productDescription}>
-              {selectedProduct.productDescription}
-            </Text>
-            <Text style={styles.productPrice}>
-              Price: ${selectedProduct.productPrice}
-            </Text>
-            {selectedVariety && (
-              <View>
-                <VarietySelector
-                  variety={selectedVariety}
-                  selectedQuantity={quantity}
-                  onSelectQuantity={setQuantity}
-                />
-                <TextInput
-                  label="Quantity"
-                  keyboardType="numeric"
-                  value={quantity.toString()}
-                  onChangeText={(value) => setQuantity(value)}
-                />
-                <Button title="Add to Cart" onPress={addToCart} />
-              </View>
-            )}
-          </View>
-        </Animated.View>
-      )}
     </View>
   );
 };
+
+
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

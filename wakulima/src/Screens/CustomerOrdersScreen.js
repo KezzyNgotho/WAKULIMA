@@ -10,9 +10,15 @@ import firebase from "../components/firebase"; // Import your Firebase configura
 
 const CustomerOrdersScreen = () => {
   const [orders, setOrders] = useState([]);
-  const userId = "your_user_id"; // Replace with the logged-in user's ID
+  const user = firebase.auth().currentUser; // Get the currently logged-in user
+  const userId = user ? user.uid : ""; // Replace with the logged-in user's ID
 
   useEffect(() => {
+    if (!userId) {
+      // User is not logged in, handle accordingly
+      return;
+    }
+
     // Fetch orders for the logged-in user from Firebase
     const ordersRef = firebase.firestore().collection("orders");
 
@@ -34,30 +40,34 @@ const CustomerOrdersScreen = () => {
   }, [userId]);
 
   // Render a single order item
-  const renderOrderItem = ({ item }) => {
-    return (
-      <TouchableOpacity style={styles.orderItem}>
-        <Text style={styles.orderNumber}>Order #{item.orderNumber}</Text>
-        <Text style={styles.orderDate}>
-          Order Date: {item.orderDate.toDate().toLocaleString()}
-        </Text>
-        <Text style={styles.orderStatus}>Status: {item.status}</Text>
-        <Text style={styles.orderTotal}>Total: ${item.totalAmount.toFixed(2)}</Text>
-        {/* Render order items and their details here */}
-        <FlatList
-          data={item.items}
-          renderItem={({ item: orderItem }) => (
-            <View style={styles.orderItemDetails}>
-              <Text>{orderItem.name}</Text>
-              <Text>Price: ${orderItem.price.toFixed(2)}</Text>
-              {/* Add more details as needed */}
-            </View>
-          )}
-          keyExtractor={(orderItem) => orderItem.id}
-        />
-      </TouchableOpacity>
-    );
-  };
+  // Render a single order item
+const renderOrderItem = ({ item }) => {
+  return (
+    <TouchableOpacity style={styles.orderItem}>
+      <Text style={styles.orderNumber}>Order #{item.orderNumber}</Text>
+      <Text style={styles.orderDate}>
+        Order Date: {item.orderDate.toDate().toLocaleString()}
+      </Text>
+      <Text style={styles.orderStatus}>Status: {item.status}</Text>
+      <Text style={styles.orderAddress}>Delivery Address: {item.deliveryAddress}</Text>
+      <Text style={styles.orderFees}>Delivery Fees: ${item.deliveryFees.toFixed(2)}</Text>
+      <Text style={styles.orderPaymentMethod}>Payment Method: {item.paymentMethod}</Text>
+      <Text style={styles.orderTotal}>Total: ${item.totalAmount.toFixed(2)}</Text>
+      {/* Render order items and their details here */}
+      <FlatList
+        data={item.items}
+        renderItem={({ item: orderItem }) => (
+          <View style={styles.orderItemDetails}>
+            <Text>{orderItem.name}</Text>
+            <Text>Price: ${orderItem.price.toFixed(2)}</Text>
+            {/* Add more details as needed */}
+          </View>
+        )}
+        keyExtractor={(orderItem) => orderItem.id}
+      />
+    </TouchableOpacity>
+  );
+};
 
   return (
     <View style={styles.container}>
