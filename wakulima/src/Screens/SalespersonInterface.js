@@ -1,8 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
-import { Button, Card, Title, TextInput, Modal, Portal, FAB, List } from 'react-native-paper';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import {
+  Button,
+  Card,
+  Title,
+  TextInput,
+  Modal,
+  Portal,
+  FAB,
+  List,
+} from 'react-native-paper';
 import firebase from '../components/firebase';
-import ImagePicker from 'react-native-image-picker';
+import ImagePicker from 'react-native-image-crop-picker';
 
 const SalespersonInterface = () => {
   const [products, setProducts] = useState([]);
@@ -13,13 +30,26 @@ const SalespersonInterface = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [productImage, setProductImage] = useState(null);
 
+  const upload = () => {
+    ImagePicker.openPicker({
+      width: 300,
+      height: 400,
+      cropping: true,
+      includeBase64: true,
+    })
+      .then(image => {
+        console.log(image);
+      })
+      .catch(err => console.log(err));
+  };
+
   useEffect(() => {
     const productsRef = firebase.firestore().collection('products');
 
-    productsRef.onSnapshot((snapshot) => {
+    productsRef.onSnapshot(snapshot => {
       const productList = [];
-      snapshot.forEach((doc) => {
-        productList.push({ id: doc.id, ...doc.data() });
+      snapshot.forEach(doc => {
+        productList.push({id: doc.id, ...doc.data()});
       });
       setProducts(productList);
     });
@@ -32,25 +62,27 @@ const SalespersonInterface = () => {
         name: newProductName,
         price: parseFloat(newProductPrice),
         type: selectedType,
-        imageUrl: productImage?.uri,
+        /* imageUrl: productImage?.uri, */
       };
 
       productsRef
         .doc(editingProduct.id)
         .update(updatedProduct)
         .then(() => {
-          const updatedProducts = products.map((product) =>
-            product.id === editingProduct.id ? { ...product, ...updatedProduct } : product
+          const updatedProducts = products.map(product =>
+            product.id === editingProduct.id
+              ? {...product, ...updatedProduct}
+              : product,
           );
           setProducts(updatedProducts);
           setNewProductName('');
           setNewProductPrice('');
           setSelectedType('');
-          setProductImage(null);
+          /*  setProductImage(null); */
           setAddProductModalVisible(false);
           setEditingProduct(null);
         })
-        .catch((error) => {
+        .catch(error => {
           console.error('Error updating product: ', error);
         });
     }
@@ -62,20 +94,20 @@ const SalespersonInterface = () => {
       name: newProductName,
       price: parseFloat(newProductPrice),
       type: selectedType,
-      imageUrl: productImage?.uri,
+      /*  imageUrl: productImage?.uri, */
     };
 
     productsRef
       .add(newProduct)
-      .then((docRef) => {
-        setProducts([...products, { id: docRef.id, ...newProduct }]);
+      .then(docRef => {
+        setProducts([...products, {id: docRef.id, ...newProduct}]);
         setNewProductName('');
         setNewProductPrice('');
         setSelectedType('');
-        setProductImage(null);
+        /*  setProductImage(null); */
         setAddProductModalVisible(false);
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('Error adding product: ', error);
       });
   };
@@ -89,7 +121,7 @@ const SalespersonInterface = () => {
       },
     };
 
-    ImagePicker.showImagePicker(options, (response) => {
+    ImagePicker.showImagePicker(options, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.error) {
@@ -109,11 +141,13 @@ const SalespersonInterface = () => {
           <Card.Content>
             <Title>Our Products:</Title>
             <List.Section>
-              {products.map((product) => (
+              {products.map(product => (
                 <List.Item
                   key={product.id}
                   title={product.name}
-                  description={`Price: $${product.price ? product.price.toFixed(2) : 'N/A'}`}
+                  description={`Price: $${
+                    product.price ? product.price.toFixed(2) : 'N/A'
+                  }`}
                   left={() => (
                     <TouchableOpacity
                       onPress={() => {
@@ -123,8 +157,7 @@ const SalespersonInterface = () => {
                         setEditingProduct(product);
                         setAddProductModalVisible(true);
                       }}
-                      style={styles.iconContainer}
-                    >
+                      style={styles.iconContainer}>
                       <Image
                         source={require('../assets/icons8-edit-30.png')}
                         style={styles.imageIcon}
@@ -151,54 +184,59 @@ const SalespersonInterface = () => {
             setAddProductModalVisible(false);
             setEditingProduct(null);
             setProductImage(null);
-          }}
-        >
+          }}>
           <Card>
             <Card.Content>
-              <Title>{editingProduct ? 'Edit Product' : 'Add New Product'}</Title>
+              <Title>
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </Title>
               <TextInput
                 label="Product Name"
                 value={newProductName}
-                onChangeText={(text) => setNewProductName(text)}
+                onChangeText={text => setNewProductName(text)}
                 style={styles.input}
               />
               <TextInput
                 label="Product Price"
                 value={newProductPrice}
-                onChangeText={(text) => setNewProductPrice(text)}
+                onChangeText={text => setNewProductPrice(text)}
                 keyboardType="numeric"
                 style={styles.input}
               />
               <TextInput
                 label="Product Type"
                 value={selectedType}
-                onChangeText={(text) => setSelectedType(text)}
+                onChangeText={text => setSelectedType(text)}
                 style={styles.input}
               />
-              <Button mode="contained" onPress={editingProduct ? handleEditProduct : handleAddProduct} style={styles.addButton}>
+
+              <Button mode="contained" onPress={upload}>
+                Select Image
+              </Button>
+              <Button
+                mode="contained"
+                onPress={editingProduct ? handleEditProduct : handleAddProduct}
+                style={styles.addButton}>
                 {editingProduct ? 'Save Changes' : 'Add Product'}
               </Button>
-              <Button onPress={handleSelectImage}>Select Image</Button>
-              {productImage && (
-                <Image
-                  source={{ uri: productImage.uri }}
-                  style={{ width: 100, height: 100, alignSelf: 'center', marginVertical: 10 }}
-                />
-              )}
             </Card.Content>
           </Card>
         </Modal>
       </Portal>
 
       {/* Floating Action Button for adding a new product */}
-      <FAB
+      {/* Replace the FAB component with a custom image */}
+      <TouchableOpacity
         style={styles.fab}
-        icon="plus"
         onPress={() => {
           setEditingProduct(null);
           setAddProductModalVisible(true);
-        }}
-      />
+        }}>
+        <Image
+          source={require('../assets/icons8-plus-24.png')} // Replace with the correct path to your custom image
+          style={styles.customFabIcon}
+        />
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -207,11 +245,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: '#F5F5F5',
   },
   header: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 16,
   },
   contentContainer: {
@@ -235,10 +273,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   fab: {
-    position: "absolute",
+    position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+
+  customFabIcon: {
+    width: 50, // Adjust the width as needed
+    height: 50, // Adjust the height as needed
   },
 });
 

@@ -31,6 +31,7 @@ const PaymentSelectionScreen = ({ route, navigation }) => {
         address,
         totalAmount,
         deliveryMethod,
+        products: [/* your array of products here */],
       });
     } else {
       console.error("User is not authenticated");

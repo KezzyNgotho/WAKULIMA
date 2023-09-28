@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,24 +6,24 @@ import {
   StyleSheet,
   FlatList,
   Image,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { TextInput } from "react-native-paper";
-import firebase from "../components/firebase";
+} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
+import {TextInput} from 'react-native-paper';
+import firebase from '../components/firebase';
 
 const CustomerInterface = () => {
   const navigation = useNavigation();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
 
   useEffect(() => {
-    const productsRef = firebase.firestore().collection("products");
+    const productsRef = firebase.firestore().collection('products');
 
-    const unsubscribe = productsRef.onSnapshot((snapshot) => {
+    const unsubscribe = productsRef.onSnapshot(snapshot => {
       const productList = [];
-      snapshot.forEach((doc) => {
-        productList.push({ id: doc.id, ...doc.data() });
+      snapshot.forEach(doc => {
+        productList.push({id: doc.id, ...doc.data()});
       });
       setProducts(productList);
       setFilteredProducts(productList); // Initialize filtered products with all products
@@ -32,26 +32,32 @@ const CustomerInterface = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleSearch = (query) => {
+  const handleSearch = query => {
     // Filter products based on the search query
-    const filtered = products.filter((product) => {
+    const filtered = products.filter(product => {
       if (product.productName && query) {
         const productNameLower = product.productName.toLowerCase();
         const queryLower = query.toLowerCase();
         return productNameLower.includes(queryLower);
       }
-      return false;
+      return true; // Show all products when the query is empty
     });
 
     setFilteredProducts(filtered);
     setSearchQuery(query);
   };
 
-  const navigateToProductDetails = (product) => {
-    // You can add navigation logic here if needed
-    console.log("Selected product:", product);
+ /*  const navigateToProductDetails = (product) => {
+    // Use the navigation hook to navigate to the ProductDetails screen
+    navigation.navigate("ProductDetails", { product });
   };
-
+   */
+  
+  const navigateToProductDetails = (product) => {
+    // Use the navigation hook to navigate to the ProductDetails screen
+    navigation.navigate("ProductDetails", { product });
+  };
+  
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
@@ -59,19 +65,17 @@ const CustomerInterface = () => {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.cartButton}
-            onPress={() => navigation.navigate("Cart")}
-          >
+            onPress={() => navigation.navigate('Cart')}>
             <Image
-              source={require("../assets/icons8-cart-50.png")}
+              source={require('../assets/icons8-cart-50.png')}
               style={styles.actionButtonImage}
             />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => navigation.navigate("Notifications")}
-          >
+            onPress={() => navigation.navigate('Notifications')}>
             <Image
-              source={require("../assets/icons8-bell-50.png")}
+              source={require('../assets/icons8-bell-50.png')}
               style={styles.actionButtonImage}
             />
           </TouchableOpacity>
@@ -85,48 +89,52 @@ const CustomerInterface = () => {
       />
       <FlatList
         data={filteredProducts}
-        renderItem={({ item }) => (
+        renderItem={({item}) => (
           <TouchableOpacity
-            style={styles.productCard}
-            onPress={() => navigateToProductDetails(item)}
-          >
-            <Image source={{ uri: item.productImage }} style={styles.productImage} />
+          style={styles.productCard}
+          onPress={() => navigateToProductDetails(item)} 
+        >
             <View style={styles.productCardContent}>
-              <Text style={styles.productName}>{item.productName}</Text>
-              <Text style={styles.productDescription}>{item.productDescription}</Text>
-              <Text style={styles.productPrice}>Price: ${item.productPrice}</Text>
+              <Text style={styles.productName}>{item.name}</Text>
+              <Text style={styles.productDescription}>
+                Description: {item.productDescription}
+              </Text>
+              <Text style={styles.productType}>Type: {item.type}</Text>
+              <Text style={styles.productPrice}>
+                Price: $
+                {item.price ? item.price.toFixed(2) : 'N/A'}
+              </Text>
+
+              
             </View>
           </TouchableOpacity>
         )}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         numColumns={2}
       />
     </View>
   );
 };
 
-
-
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: '#F5F5F5',
   },
   headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
   header: {
     fontSize: 24,
-    fontFamily: "YourCustomFont-Bold", // Replace with your custom font or system font
-    color: "#333",
+    fontFamily: 'YourCustomFont-Bold', // Replace with your custom font or system font
+    color: '#333',
   },
   headerButtons: {
-    flexDirection: "row",
+    flexDirection: 'row',
   },
   cartButton: {
     padding: 8,
@@ -137,29 +145,29 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   searchInput: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: "#DDDDDD",
+    borderColor: '#DDDDDD',
     borderRadius: 6,
     padding: 3,
     marginBottom: 14,
   },
   productCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: "#DDDDDD",
+    borderColor: '#DDDDDD',
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
-    width: "48%", // Adjust the width to fit two items in a row
-    marginHorizontal: "1%", // Add horizontal margin for spacing between items
-    flexDirection: "column",
-    alignItems: "center",
+    width: '48%', // Adjust the width to fit two items in a row
+    marginHorizontal: '1%', // Add horizontal margin for spacing between items
+    flexDirection: 'column',
+    alignItems: 'center',
   },
   productImage: {
     width: 80,
     height: 80,
-    resizeMode: "cover",
+    resizeMode: 'cover',
     marginRight: 16,
   },
   productCardContent: {
@@ -167,42 +175,48 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 18,
-    fontFamily: "YourCustomFont-Bold", // Replace with your custom font or system font
-    color: "green",
+    fontFamily: 'YourCustomFont-Bold', // Replace with your custom font or system font
+    color: 'green',
     marginBottom: 8,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   productDescription: {
-    color: "black",
+    color: 'black',
     marginBottom: 8,
+    fontWeight:"bold,"
     // Replace with your custom font or system font
   },
   productPrice: {
-    color: "orange",
+    color: 'orange',
     fontSize: 18, // Replace with your custom font or system font
+  },
+  productType: {
+    color: '#00008B',
+    fontSize: 14,
+    fontWeight:'bold' // Replace with your custom font or system font
   },
   actionButtonImage: {
     width: 29,
     height: 29,
   },
   selectedProductCard: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "white",
+    backgroundColor: 'white',
     padding: 16,
     zIndex: 1,
   },
   closeButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 16,
     right: 16,
   },
   closeButtonText: {
     fontSize: 18,
-    color: "gray",
+    color: 'gray',
   },
 });
 

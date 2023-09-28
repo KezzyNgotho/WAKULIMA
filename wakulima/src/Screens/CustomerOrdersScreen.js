@@ -24,7 +24,7 @@ const CustomerOrdersScreen = () => {
 
     ordersRef
       .where("userId", "==", userId) // Filter orders by user ID
-      .orderBy("orderDate", "desc") // Order orders by date (newest first)
+      .orderBy("orderDate", "asc") // Order orders by date (newest first)
       .get()
       .then((querySnapshot) => {
         const ordersData = [];
@@ -40,34 +40,45 @@ const CustomerOrdersScreen = () => {
   }, [userId]);
 
   // Render a single order item
-  // Render a single order item
-const renderOrderItem = ({ item }) => {
-  return (
-    <TouchableOpacity style={styles.orderItem}>
-      <Text style={styles.orderNumber}>Order #{item.orderNumber}</Text>
-      <Text style={styles.orderDate}>
-        Order Date: {item.orderDate.toDate().toLocaleString()}
-      </Text>
-      <Text style={styles.orderStatus}>Status: {item.status}</Text>
-      <Text style={styles.orderAddress}>Delivery Address: {item.deliveryAddress}</Text>
-      <Text style={styles.orderFees}>Delivery Fees: ${item.deliveryFees.toFixed(2)}</Text>
-      <Text style={styles.orderPaymentMethod}>Payment Method: {item.paymentMethod}</Text>
-      <Text style={styles.orderTotal}>Total: ${item.totalAmount.toFixed(2)}</Text>
-      {/* Render order items and their details here */}
-      <FlatList
-        data={item.items}
-        renderItem={({ item: orderItem }) => (
-          <View style={styles.orderItemDetails}>
-            <Text>{orderItem.name}</Text>
-            <Text>Price: ${orderItem.price.toFixed(2)}</Text>
-            {/* Add more details as needed */}
-          </View>
-        )}
-        keyExtractor={(orderItem) => orderItem.id}
-      />
-    </TouchableOpacity>
-  );
-};
+  const renderOrderItem = ({ item }) => {
+    return (
+      <TouchableOpacity style={styles.orderItem}>
+        <Text style={styles.orderNumber}>Order #{item.orderNumber}</Text>
+        <Text style={styles.orderDate}>
+          Order Date: {item.orderDate.toDate().toLocaleString()}
+        </Text>
+        <Text style={styles.orderStatus}>Status: {item.status}</Text>
+        <Text style={styles.orderAddress}>Delivery Address:</Text>
+        <Text style={styles.addressText}>{item.deliveryAddress}</Text>
+        <Text style={styles.orderFees}>
+          Delivery Fees: ${item.deliveryFees ? item.deliveryFees.toFixed(2) : 'N/A'}
+        </Text>
+        <Text style={styles.orderPaymentMethod}>
+          Payment Method: {item.paymentMethod}
+        </Text>
+        <Text style={styles.orderTotal}>
+          Total: ${item.totalAmount ? item.totalAmount.toFixed(2) : 'N/A'}
+        </Text>
+        {/* Render order items and their details here */}
+        <FlatList
+          data={item.items}
+          renderItem={({ item: orderItem }) => (
+            <View style={styles.orderItemDetails}>
+              <Text style={styles.productName}>{orderItem.name}</Text>
+              <Text style={styles.productPrice}>
+                Price: ${orderItem.price.toFixed(2)}
+              </Text>
+              <Text style={styles.productQuantity}>
+                Quantity: {orderItem.quantity}
+              </Text>
+              {/* Add more details as needed */}
+            </View>
+          )}
+          keyExtractor={(orderItem) => orderItem.id}
+        />
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -100,29 +111,60 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
+    
   },
   orderNumber: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
+    color:'black',
   },
   orderDate: {
     fontSize: 14,
-    color: "#333",
+    color:'green',
     marginBottom: 8,
   },
   orderStatus: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#007BFF",
     marginBottom: 8,
   },
-  orderTotal: {
+  orderAddress: {
     fontSize: 16,
     fontWeight: "bold",
+    marginBottom: 8,
+  },
+  addressText: {
+    fontSize: 16,
+    marginBottom: 8,
+    color:'black',
+  },
+  orderFees: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  orderPaymentMethod: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  orderTotal: {
+    fontSize: 18,
+    fontWeight: "bold",
     color: "green",
+    marginTop: 8,
   },
   orderItemDetails: {
     marginTop: 8,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  productPrice: {
+    fontSize: 16,
+  },
+  productQuantity: {
+    fontSize: 16,
   },
   ordersList: {
     flex: 1,

@@ -75,11 +75,13 @@ android {
 
     namespace "com.wakulima"
     defaultConfig {
+         vectorDrawables.useSupportLibrary = true
         applicationId "com.wakulima"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+         targetSdkVersion 27
     }
     signingConfigs {
         debug {

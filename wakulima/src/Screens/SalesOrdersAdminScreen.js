@@ -1,195 +1,191 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Button, Card } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import firebase from '../components/firebase';
-import TopSellingProductsList from '../components/TopSellingProductsList';
-import ProductItem from '../components/ProductItem';
-
+import Pie from 'react-native-pie-chart';
 const AdminDashboard = () => {
-  const [products, setProducts] = useState([]);
-  const [totalSales, setTotalSales] = useState(0);
-  const [TopSellingProducts, setTopSellingProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [customerPreferences, setCustomerPreferences] = useState([]);
+/*   const [demandData, setDemandData] = useState([]); */
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [feedback, setFeedback] = useState('');
+  const [recommendations, setRecommendations] = useState([]); // Define the 'recommendations' state
 
   useEffect(() => {
-    const productsRef = firebase.firestore().collection('products');
     const ordersRef = firebase.firestore().collection('orders');
 
-    const fetchProducts = () => {
-      productsRef.onSnapshot((snapshot) => {
-        const productList = [];
-        snapshot.forEach((doc) => {
-          productList.push({ id: doc.id, ...doc.data() });
-        });
-        setProducts(productList);
+    ordersRef.onSnapshot((snapshot) => {
+      const orderList = [];
+      snapshot.forEach((doc) => {
+        orderList.push({ id: doc.id, ...doc.data() });
       });
-    };
+      console.log(orderList); // Add this line to debug the fetched data
 
-    const calculateTotalSales = () => {
-      ordersRef.onSnapshot((snapshot) => {
-        let total = 0;
-        snapshot.forEach((doc) => {
-          const orderData = doc.data();
-          if (orderData.products) {
-            orderData.products.forEach((product) => {
-              total += product.price;
-            });
-          }
-        });
-        setTotalSales(total);
-        setLoading(false);
-      });
-    };
-
-    fetchProducts();
-    calculateTotalSales();
+      // Calculate demand based on orders and set it in the demand collection
+      calculateAndSetDemand(orderList);
+    });
   }, []);
 
-  const analyzeProductState = (product) => {
-    if (product.stock <= 10) {
-      return 'Low Stock';
-    } else if (product.salesCount >= 50) {
-      return 'High Demand';
-    } else {
-      return 'Normal';
-    }
-  };
-  
+  // Function to calculate demand and store it in the demand collection
+// Function to calculate demand and store it in the demand collection
+const calculateAndSetDemand = (orders) => {
+  const demandMap = new Map();
 
-  const performProductAnalysis = () => {
-    setLoading(true);
+  // Calculate demand for each product based on orders
+  orders.forEach((order) => {
+    const productsOrdered = order.productsOrdered; // Assuming your order contains a 'productsOrdered' field
+    if (productsOrdered) {
+      productsOrdered.forEach((product) => {
+        const productName = product.productName;
+        const quantity = product.productQuantity;
 
-    const productSalesCounts = {};
-    const ordersRef = firebase.firestore().collection('orders');
-
-    ordersRef.get().then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        const orderData = doc.data();
-        if (orderData.products) {
-          orderData.products.forEach((product) => {
-            const productId = product.id;
-            if (!productSalesCounts[productId]) {
-              productSalesCounts[productId] = 0;
-            }
-            productSalesCounts[productId]++;
-          });
+        // Update the demand map
+        if (demandMap.has(productName)) {
+          demandMap.set(productName, demandMap.get(productName) + quantity);
+        } else {
+          demandMap.set(productName, quantity);
         }
       });
+    } else {
+      console.log('No products found in this order.');
+    }
+  });
 
-      const sortedProducts = Object.keys(productSalesCounts).sort(
-        (a, b) => productSalesCounts[b] - productSalesCounts[a]
-      );
+  // Convert the demand map to an array of objects
+  const demandData = Array.from(demandMap, ([productName, demand]) => ({
+    productName,
+    demand,
+  }));
 
-      setTopSellingProducts(sortedProducts);
-      setLoading(false);
-    });
+  // Store the demand data in the Firebase Firestore collection
+  const demandRef = firebase.firestore().collection('demand_data');
+  demandData.forEach((data) => {
+    demandRef.add(data);
+  });
+
+  // Calculate recommendations based on demand data and set them
+  calculateRecommendations(demandData);
+
+
+
+    // Convert the demand map to an array of objects
+   
+    // Store the demand data in the Firebase Firestore collection
+  
+    // Calculate recommendations based on demand data and set them
+    calculateRecommendations(demandData);
+  };
+
+  // Function to calculate recommendations based on demand data
+  const calculateRecommendations = (demandData) => {
+    // Implement your recommendation logic here
+    // This can involve processing demandData and customerPreferences to generate recommendations
+
+    // For demonstration purposes, let's assume you're recommending products
+    // that have the highest demand.
+    // You can replace this with your specific recommendation algorithm.
+
+    // Sort demand data by demand in descending order
+    const sortedDemandData = [...demandData].sort((a, b) => b.demand - a.demand);
+
+    // Get the top N recommended products (e.g., top 5)
+    const topRecommendedProducts = sortedDemandData.slice(0, 5);
+
+    // Set the recommendations state with the top recommended products
+    setRecommendations(topRecommendedProducts);
+  };
+
+  const submitFeedback = () => {
+    // Implement feedback submission logic here, e.g., storing feedback in Firebase or sending it to a backend API
+    // Example: You can use firebase.firestore() to save feedback to Firestore
+    // Replace 'your_feedback_collection' with the actual collection name
+    // firebase.firestore().collection('your_feedback_collection').add({
+    //   feedbackText: feedback,
+    //   // Add more fields if needed
+    // });
+
+    // Reset feedback input field
+    setFeedback('');
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Admin Dashboard</Text>
-      <View style={styles.infoContainer}>
-        <Text style={styles.salesInfo}>Total Sales: ${totalSales.toFixed(2)}</Text>
-        <TouchableOpacity
-          style={styles.analysisButton}
-          onPress={performProductAnalysis}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>Perform Product Analysis</Text>
-        </TouchableOpacity>
-      </View>
-  
-      {loading ? (
-        <ActivityIndicator style={styles.loadingIndicator} size="large" color="#007BFF" />
-      ) : (
+      <Text style={styles.sectionTitle}>Customer Preferences</Text>
+      <FlatList
+        data={customerPreferences}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => setSelectedCustomer(item)}>
+            <Text>{item.customerName}</Text>
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item) => item.id}
+      />
+      {selectedCustomer && (
         <View>
-          <ProductList products={products} totalSales={totalSales} analyzeProductState={analyzeProductState} />
-  
-          <Text style={styles.analysisLabel}>Top Selling Products:</Text>
-        <TopSellingProductsList topSellingProducts={TopSellingProducts} />
+          <Text style={styles.sectionTitle}>Customer Details</Text>
+          <Text>Customer Name: {selectedCustomer.customerName}</Text>
+          {/* Display other customer details here */}
         </View>
       )}
+      <Text style={styles.sectionTitle}>Demand Data</Text>
+      {/* Display demand data, demand calculations, etc. */}
+     
+      <FlatList
+        data={recommendations}
+        renderItem={({ item }) => (
+          <View style={styles.recommendationItem}>
+            <Text>Product: {item.productName}</Text>
+            <Text>Demand: {item.demand}</Text>
+            {/* Display other recommendation details */}
+          </View>
+        )}
+        keyExtractor={(item) => item.productName}
+      />
+      <Text style={styles.sectionTitle}>Feedback</Text>
+      <TextInput
+        style={styles.feedbackInput}
+        placeholder="Enter feedback"
+        value={feedback}
+        onChangeText={(text) => setFeedback(text)}
+      />
+      <Button title="Submit Feedback" onPress={submitFeedback} />
     </View>
   );
 };
 
-const ProductList = ({ products, totalSales, analyzeProductState }) => {
-  // Create pairs of products for rendering in rows
-  const pairedProducts = [];
-  for (let i = 0; i < products.length; i += 2) {
-    const pair = [products[i]];
-    if (i + 1 < products.length) {
-      pair.push(products[i + 1]);
-    }
-    pairedProducts.push(pair);
-  }
-
-  return (
-    <FlatList
-      data={pairedProducts}
-      keyExtractor={(item, index) => `product_pair_${index}`}
-      renderItem={({ item }) => (
-        <View style={styles.productRow}>
-          {item.map((product) => (
-            <ProductItem
-              key={product.id}
-              item={product}
-              totalSales={totalSales}
-              analyzeProductState={analyzeProductState}
-            />
-          ))}
-        </View>
-      )}
-    />
-  );
-};
-
 const styles = StyleSheet.create({
+  pieChartContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
-    textAlign: 'center',
   },
-  infoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  salesInfo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  analysisButton: {
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  analysisLabel: {
+  sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
     marginTop: 16,
   },
-  productCard: {
+  recommendationItem: {
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 5,
+    padding: 8,
+    marginBottom: 8,
+  },
+  feedbackInput: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 5,
     marginBottom: 16,
-    borderRadius: 8,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  loadingIndicator: {
-    marginTop: 20,
+    paddingHorizontal: 8,
   },
 });
 

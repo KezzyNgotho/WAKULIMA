@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image,TouchableOpacity } from "react-native";
-import firebase from "../components/firebase"; // Import Firebase
-import { useNavigation } from "@react-navigation/native"; // Import the useNavigation hook
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import firebase from "../components/firebase";
+import { useNavigation } from "@react-navigation/native";
 
 const OrderConfirmationScreen = ({ route }) => {
   const { address, totalAmount, deliveryMethod } = route.params;
   const [userData, setUserData] = useState(null);
-  const navigation = useNavigation(); // Create a navigation object
+  const [cartItems, setCartItems] = useState([]);
+  const navigation = useNavigation();
 
   useEffect(() => {
-    // Fetch user data from Firestore based on the current user's UID
     const user = firebase.auth().currentUser;
+
     if (user) {
       const userId = user.uid;
       const userRef = firebase.firestore().collection("other_details").doc(userId);
+
       userRef
         .get()
         .then((doc) => {
@@ -26,40 +28,97 @@ const OrderConfirmationScreen = ({ route }) => {
         .catch((error) => {
           console.error("Error fetching user data:", error);
         });
+
+      const cartItemsRef = firebase.firestore().collection("cart");
+      cartItemsRef
+        .where("userId", "==", userId)
+        .get()
+        .then((querySnapshot) => {
+          const items = [];
+          querySnapshot.forEach((doc) => {
+            items.push({ id: doc.id, ...doc.data() });
+          });
+          setCartItems(items);
+        })
+        .catch((error) => {
+          console.error("Error fetching cart items:", error);
+        });
     } else {
       console.error("User is not authenticated");
     }
   }, []);
 
-  // Function to clear the cart
-  const clearCart = () => {
-    const user = firebase.auth().currentUser;
-    if (user) {
-      const userId = user.uid;
-      const cartItemsRef = firebase.firestore().collection("cart");
-      // Delete all cart items related to the user
-      cartItemsRef
-        .where("userId", "==", userId)
-        .get()
-        .then((querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-            doc.ref.delete();
-          });
-          // Navigate to a success screen or home screen after clearing the cart
+ // ... Previous code ...
+
+const clearCart = () => {
+  const user = firebase.auth().currentUser;
+
+  if (user) {
+    const userId = user.uid;
+    const batch = firebase.firestore().batch();
+    const cartItemsRef = firebase.firestore().collection("cart");
+    const ordersRef = firebase.firestore().collection("orders");
+
+    const productsOrdered = []; // Array to store products in the order
+
+    cartItems.forEach((item) => {
+      // Check for any undefined or missing properties
+      if (item.id && item.name && item.price && item.quantity) {
+        // Create a product object for this item
+        const productOrdered = {
+          productId: item.id, // Use 'id' instead of 'productId' if that's the correct field name
+          productName: item.name,
+          productPrice: item.price,
+          productQuantity: item.quantity,
+        };
+
+        // Add the product to the productsOrdered array
+        productsOrdered.push(productOrdered);
+
+        // Delete the cart item
+        const cartItemRef = cartItemsRef.doc(item.id);
+        batch.delete(cartItemRef);
+      } else {
+        console.error("Cart item details are missing or undefined:", item);
+      }
+    });
+
+    // Check if all order details are defined
+    if (userId && address && deliveryMethod && productsOrdered.length > 0) {
+      // Create an order document
+      const order = {
+        userId,
+        deliveryAddress: address,
+        deliveryMethod,
+        orderDate: firebase.firestore.FieldValue.serverTimestamp(),
+        productsOrdered: productsOrdered, // Add the productsOrdered array
+      };
+
+      // Add the order to the "orders" collection
+      batch.set(ordersRef.doc(), order);
+
+      batch
+        .commit()
+        .then(() => {
+          console.log("Order recorded, cart cleared, and stock updated");
           navigation.navigate("CustomerInterface");
         })
         .catch((error) => {
-          console.error("Error clearing cart:", error);
+          console.error("Error committing batch:", error);
         });
+    } else {
+      console.error("Some order details are missing or undefined");
     }
-  };
+  }
+};
+
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.headerContainer}>
           <Image
-            source={require("../assets/icons8-check-mark-50.png")} // Replace with the correct path to your checkmark image
+            source={require("../assets/icons8-check-mark-50.png")}
             style={styles.checkmarkImage}
           />
           <Text style={styles.header}>Order Confirmed</Text>
@@ -98,8 +157,14 @@ const OrderConfirmationScreen = ({ route }) => {
               <Text style={styles.infoText}>{userData.location}</Text>
             </View>
           )}
+          <Text style={styles.productsLabel}>Products Ordered:</Text>
+          {cartItems.map((item, index) => (
+            <View key={index} style={styles.productItem}>
+              <Text style={styles.productName}>{item.name}</Text>
+              <Text style={styles.productPrice}>Price: ${item.price.toFixed(2)}</Text>
+            </View>
+          ))}
         </View>
-        {/* Implement SMS confirmation here */}
       </View>
       <TouchableOpacity style={styles.orderButton} onPress={clearCart}>
         <Text style={styles.orderButtonText}>Complete Order</Text>
@@ -107,6 +172,10 @@ const OrderConfirmationScreen = ({ route }) => {
     </View>
   );
 };
+
+
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -121,7 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#ccc",
-    width: "80%", // Adjust the width as needed
+    width: "80%",
   },
   headerContainer: {
     alignItems: "center",
@@ -172,6 +241,25 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  productsLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333333",
+    marginTop: 20,
+  },
+  productItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  productName: {
+    fontSize: 16,
+    color: "#333333",
+  },
+  productPrice: {
+    fontSize: 16,
+    color: "#777777",
   },
 });
 
