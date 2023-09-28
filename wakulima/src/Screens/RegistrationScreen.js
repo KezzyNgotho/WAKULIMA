@@ -19,33 +19,104 @@ const RegistrationScreen = () => {
 
   const handleRegistration = async () => {
     try {
-      // Add email and password validation here if needed
+      // Add email, password, and username validation here if needed
+      if (!validateEmail(email)) {
+        setErrorMessage('Invalid email address');
+        return;
+      }
+  
+      if (!validatePassword(password)) {
+        setErrorMessage('Password must be at least 6 characters long');
+        return;
+      }
+      // Define a function to validate the username
+const validateUsername = (username) => {
+  // Implement your validation logic here
+  // Return true if the username is valid, otherwise return false
+  return /^[a-zA-Z0-9_]+$/.test(username); // Example: Allow letters, numbers, and underscores
+};
 
+  
+      if (!validateUsername(username)) {
+        setErrorMessage('Invalid username');
+        return;
+      }
+      
+  // Define a function to check if the email is unique in your database
+const checkEmailUniqueness = async (email) => {
+  try {
+    // Query your database to check if the email exists
+    const snapshot = await firebase.firestore().collection('users').where('email', '==', email).get();
+    return snapshot.empty; // If the snapshot is empty, the email is unique; otherwise, it's not.
+  } catch (error) {
+    console.error('Error checking email uniqueness:', error);
+    return false; // Return false in case of an error
+  }
+};
+
+      // Check for email and username uniqueness
+      const isEmailUnique = await checkEmailUniqueness(email);
+      const isUsernameUnique = await checkUsernameUniqueness(username);
+  
+      if (!isEmailUnique) {
+        setErrorMessage('Email address is already in use');
+        return;
+      }
+  
+      if (!isUsernameUnique) {
+        setErrorMessage('Username is already in use');
+        return;
+      }
+  
       // Create a new user in Firebase Authentication
-      const userCredential = await firebase
-        .auth()
-        .createUserWithEmailAndPassword(email, password);
-
+      const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+  
+      // Get the user's UID
+      const uid = userCredential.user.uid;
+  
       // Define user data to be stored in Firestore
       const userData = {
-        role,
+        email,
         username,
         fullName,
         mobileNumber,
-        status: 'Pending', // Default status, can be changed based on your approval process
-        id, // You can customize this field as needed
+        role,
+        status: role === 'customer' ? ' Approved' : 'Pending',
+        // Add other user data as needed
       };
-
-      // Store user data in Firestore
-      await firebase.firestore().collection('users').doc(userCredential.user.uid).set(userData);
-
+  
+      // Store user data in Firestore with the UID as the document ID
+      await firebase.firestore().collection('users').doc(uid).set(userData);
+  
       // Redirect to the login page after successful registration
       navigation.navigate('Login');
     } catch (error) {
       console.error('Registration error:', error);
-      // Provide specific error messages for different failure scenarios
-      setErrorMessage('Registration failed. Please try again.');
+      // Handle registration error
+      if (error.code === 'auth/email-already-in-use') {
+        setErrorMessage('Email address is already in use.');
+      } else {
+        setErrorMessage('Registration failed. Please try again.');
+      }
     }
+  };
+  
+
+  // Validate email format
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validate password criteria (e.g., at least 6 characters)
+  const validatePassword = (password) => {
+    return password.length >= 6;
+  };
+
+  // Check if the username is unique
+  const checkUsernameUniqueness = async (username) => {
+    const snapshot = await firebase.firestore().collection('users').where('username', '==', username).get();
+    return snapshot.empty;
   };
 
   // Conditional rendering of the ID field

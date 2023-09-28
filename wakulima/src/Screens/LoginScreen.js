@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react
 import { TextInput, Button } from 'react-native-paper';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import firebase from '../components/firebase';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -10,40 +11,31 @@ const LoginScreen = ({ navigation }) => {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const handleLogin = async () => {
-    if (!username || !password) {
-      setErrorMessage('Please enter both username and password.');
-      return;
-    }
-
     try {
-      // Check if the username exists in your Firestore collection
-      const userDoc = await firestore()
+      // Query Firestore to find the user's email by username
+      const userQuerySnapshot = await firebase.firestore()
         .collection('users')
         .where('username', '==', username)
-        .limit(1)
         .get();
 
-      if (!userDoc.empty) {
-        const userData = userDoc.docs[0].data();
+      if (!userQuerySnapshot.empty) {
+        // Get the first document from the query (assuming usernames are unique)
+        const userDoc = userQuerySnapshot.docs[0];
+        const userData = userDoc.data();
 
-        // Sign in the user with Firebase Authentication using the associated email
+        // Sign in with email and password
         await auth().signInWithEmailAndPassword(userData.email, password);
 
         // Redirect the user based on their role
-        if (userData && userData.role) {
-          const userRole = userData.role;
-          // Redirect the user based on their role
-          if (userRole === 'customer') {
-            navigation.navigate('CustomerScreen');
-          } else if (userRole === 'salesperson') {
-            navigation.navigate('SalespersonScreen');
-          } else if (userRole === 'admin') {
-            navigation.navigate('AdminScreen');
-          } else {
-            setErrorMessage('Invalid user role.');
-          }
+        const userRole = userData.role;
+        if (userRole === 'customer') {
+          navigation.navigate('Main');
+        } else if (userRole === 'salesperson') {
+          navigation.navigate('SalesStack');
+        } else if (userRole === 'admin') {
+          navigation.navigate('AdminStack');
         } else {
-          setErrorMessage('User role not found.');
+          setErrorMessage('Invalid user role.');
         }
       } else {
         setErrorMessage('User not found.');
@@ -55,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <ImageBackground source={require('../assets/Screenshot 2023-09-28 011220.png')} style={styles.container}>
+    <ImageBackground source={require('../assets/icons8-cart-50.png')} style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Login</Text>
         <TextInput
