@@ -7,7 +7,7 @@ import OrdersScreen from "../Screens/OrderScreen";
 import SalesOrdersAdminScreen from "../Screens/SalesOrdersAdminScreen";
 import SalesFeedScreen from "../Screens/SalesFeedScreen";
 import {  SalesStackNavigator, ContactStackNavigator, } from "./StackNavigator";
-
+import LogoutScreen from "../Screens/LogOutScreen";
 import PaymentMode from "../Screens/PaymentMode";
 import AvailableProducts from '../Screens/AvailableProducts'
 
@@ -47,15 +47,15 @@ const SalesBottomTabNavigator = () => {
         name="Orders" component={OrdersScreen} />
       <Tab.Screen
         options={{
-          tabBarLabel: 'Feeds',
+          tabBarLabel: 'LogOut',
           tabBarIcon: ({ color }) => (
             <Image
-               source={require('../assets/icons8-feed-50.png')}  
+               source={require('../assets/icons8-logout-30.png')}  
               style={{  width: 37, height: 30 }}
             />
           ),
         }}
-        name="Feeds" component={SalesFeedScreen} />
+        name="LogOut" component={LogoutScreen} />
      
     </Tab.Navigator>
   );

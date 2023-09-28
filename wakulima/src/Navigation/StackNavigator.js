@@ -21,6 +21,7 @@ import SalesBottomTabNavigator from './SalesStack';
 import SalespersonInterface from '../Screens/SalespersonInterface';
 import RegistrationSuccessScreen from '../Screens/RegistrationSuccessScreen';
 import NotificationsScreen from '../Screens/NotificationsScreen';
+import LogoutScreen from '../Screens/LogOutScreen';
 const Stack = createNativeStackNavigator();
 
 const MainStackNavigator = () => {
@@ -139,6 +140,7 @@ const LoginStackNavigator = () => {
       <Stack.Screen name="Main" component={BottomTabNavigator} />
       <Stack.Screen name='AdminStack' component={AdminBottomTabNavigator}/>
       <Stack.Screen name='SalesStack' component={SalesBottomTabNavigator}/>
+      <Stack.Screen name='LogOut' component={LogoutScreen}/>
     </Stack.Navigator>
   );
 }
