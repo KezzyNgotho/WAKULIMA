@@ -277,11 +277,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: "center",
     fontWeight: "bold",
+    color:'black'
   },
   orderSummary: {
     fontSize: 18,
     marginBottom: 16,
     textAlign: "center",
+    color:'black'
   },
   card: {
     backgroundColor: "#fff",
@@ -315,6 +317,7 @@ const styles = StyleSheet.create({
   picker: {
     height: 40,
     fontSize: 16,
+    color:'black'
   },
   addressInput: {
     backgroundColor: "#fff",
@@ -351,6 +354,7 @@ const styles = StyleSheet.create({
   userInfoText: {
     flex: 3,
     fontSize: 16,
+    color:'black'
   },
 });
 

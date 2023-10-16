@@ -48,70 +48,64 @@ const OrderConfirmationScreen = ({ route }) => {
     }
   }, []);
 
- // ... Previous code ...
+  const clearCart = () => {
+    const user = firebase.auth().currentUser;
 
-const clearCart = () => {
-  const user = firebase.auth().currentUser;
+    if (user) {
+      const userId = user.uid;
+      const batch = firebase.firestore().batch();
+      const cartItemsRef = firebase.firestore().collection("cart");
+      const ordersRef = firebase.firestore().collection("orders");
 
-  if (user) {
-    const userId = user.uid;
-    const batch = firebase.firestore().batch();
-    const cartItemsRef = firebase.firestore().collection("cart");
-    const ordersRef = firebase.firestore().collection("orders");
+      const productsOrdered = [];
 
-    const productsOrdered = []; // Array to store products in the order
+      cartItems.forEach((item) => {
+        // Check if item has required properties and they are valid
+        if (item.id && item.name && item.type && item.items && item.pricePerUnit !== undefined && item.quantity !== undefined) {
+          const productOrdered = {
+            productId: item.id,
+            productName: item.name,
+            productType: item.type, // Corrected the typo here
+            ItemsNumber: item.items, // Corrected the typo here
+            productQuantity: item.quantity,
+            productPrice: item.pricePerUnit,
+          };
 
-    cartItems.forEach((item) => {
-      // Check for any undefined or missing properties
-      if (item.id && item.name && item.price && item.quantity) {
-        // Create a product object for this item
-        const productOrdered = {
-          productId: item.id, // Use 'id' instead of 'productId' if that's the correct field name
-          productName: item.name,
-          productPrice: item.price,
-          productQuantity: item.quantity,
+          productsOrdered.push(productOrdered);
+
+          const cartItemRef = cartItemsRef.doc(item.id);
+          batch.delete(cartItemRef);
+        } else {
+          console.error("Invalid cart item:", item);
+        }
+      });
+
+      if (userId && address && deliveryMethod && productsOrdered.length > 0) {
+        const order = {
+          userId,
+          deliveryAddress: address,
+          deliveryMethod,
+          location: userData && userData.location,
+          orderDate: firebase.firestore.FieldValue.serverTimestamp(),
+          productsOrdered: productsOrdered,
         };
 
-        // Add the product to the productsOrdered array
-        productsOrdered.push(productOrdered);
+        batch.set(ordersRef.doc(), order);
 
-        // Delete the cart item
-        const cartItemRef = cartItemsRef.doc(item.id);
-        batch.delete(cartItemRef);
+        batch
+          .commit()
+          .then(() => {
+            console.log("Order recorded, cart cleared, and stock updated");
+            navigation.navigate("CustomerInterface");
+          })
+          .catch((error) => {
+            console.error("Error committing batch:", error);
+          });
       } else {
-        console.error("Cart item details are missing or undefined:", item);
+        console.error("Some order details are missing or invalid");
       }
-    });
-
-    // Check if all order details are defined
-    if (userId && address && deliveryMethod && productsOrdered.length > 0) {
-      // Create an order document
-      const order = {
-        userId,
-        deliveryAddress: address,
-        deliveryMethod,
-        orderDate: firebase.firestore.FieldValue.serverTimestamp(),
-        productsOrdered: productsOrdered, // Add the productsOrdered array
-      };
-
-      // Add the order to the "orders" collection
-      batch.set(ordersRef.doc(), order);
-
-      batch
-        .commit()
-        .then(() => {
-          console.log("Order recorded, cart cleared, and stock updated");
-          navigation.navigate("CustomerInterface");
-        })
-        .catch((error) => {
-          console.error("Error committing batch:", error);
-        });
-    } else {
-      console.error("Some order details are missing or undefined");
     }
-  }
-};
-
+  };
 
   return (
     <View style={styles.container}>
@@ -127,42 +121,15 @@ const clearCart = () => {
           Your order has been confirmed and dispatched.
         </Text>
         <View style={styles.infoContainer}>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Delivery Address</Text>
-            <Text style={styles.infoText}>{address}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Total Amount</Text>
-            <Text style={styles.infoText}>${totalAmount.toFixed(2)}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Delivery Method</Text>
-            <Text style={styles.infoText}>{deliveryMethod}</Text>
-          </View>
-          {userData && (
-            <View style={styles.infoItem}>
-              <Text style={styles.label}>Name</Text>
-              <Text style={styles.infoText}>{userData.name}</Text>
-            </View>
-          )}
-          {userData && (
-            <View style={styles.infoItem}>
-              <Text style={styles.label}>Phone Number</Text>
-              <Text style={styles.infoText}>{userData.mobileNumber}</Text>
-            </View>
-          )}
-          {userData && (
-            <View style={styles.infoItem}>
-              <Text style={styles.label}>Location</Text>
-              <Text style={styles.infoText}>{userData.location}</Text>
-            </View>
-          )}
+          <InfoItem label="Delivery Address" text={address} />
+          <InfoItem label="Total Amount" text={`Ksh ${totalAmount.toFixed(2)}`} />
+          <InfoItem label="Delivery Method" text={deliveryMethod} />
+          {userData && <InfoItem label="Name" text={userData.name} />}
+          {userData && <InfoItem label="Phone Number" text={userData.mobileNumber} />}
+          {userData && <InfoItem label="Location" text={userData.location} />}
           <Text style={styles.productsLabel}>Products Ordered:</Text>
           {cartItems.map((item, index) => (
-            <View key={index} style={styles.productItem}>
-              <Text style={styles.productName}>{item.name}</Text>
-              <Text style={styles.productPrice}>Price: ${item.price.toFixed(2)}</Text>
-            </View>
+            <ProductItem key={index} name={item.name} price={item.pricePerUnit} type={item.type} ItemsNumber={item.items} />
           ))}
         </View>
       </View>
@@ -173,8 +140,21 @@ const clearCart = () => {
   );
 };
 
+const InfoItem = ({ label, text }) => (
+  <View style={styles.infoItem}>
+    <Text style={styles.label}>{label}</Text>
+    <Text style={styles.infoText}>{text}</Text>
+  </View>
+);
 
-
+const ProductItem = ({ name, price,type ,ItemsNumber }) => (
+  <View style={styles.productItem}>
+    <Text style={styles.productName}>{name}</Text>
+    <Text style={styles.productPrice}>Price: Ksh {price.toFixed(2)}</Text>
+    <Text style={styles.productName}>{type}</Text>
+    <Text style={styles.productName}>{ItemsNumber}</Text>
+  </View>
+);
 
 
 const styles = StyleSheet.create({

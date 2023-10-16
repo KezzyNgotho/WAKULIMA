@@ -47,7 +47,8 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <ImageBackground source={require('../assets/icons8-cart-50.png')} style={styles.container}>
+    
+    <ImageBackground source={require('../assets/backgroundcharles.jpg')} style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Login</Text>
         <TextInput

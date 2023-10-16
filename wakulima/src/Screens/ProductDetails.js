@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -6,23 +7,37 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  Alert
+  Alert,
 } from "react-native";
 import firebase from "../components/firebase";
 import "firebase/auth";
-import "firebase/firestore";
 
 const ProductDetails = ({ route, navigation }) => {
-  const { product } = route.params;
-  console.log("Product:", product);
+  const { product, selectedQuantity, updateCartItem } = route.params;
 
-  const [selectedVariety, setSelectedVariety] = useState(null);
-  const [quantity, setQuantity] = useState(1);
+  const [item, setItem] = useState(1);
+
+  // Find the selected quantity details
+  const selectedQuantityDetails =
+    product && product.quantitiesAndPrices
+      ? product.quantitiesAndPrices.find((qap) => qap.quantity === selectedQuantity)
+      : null;
 
   useEffect(() => {
-    // Use this effect to respond to changes in the product object
-    // For example, you can check if varieties have been added or modified
-  }, [product]);
+    console.log("Selected Quantity:", selectedQuantity);
+    if (selectedQuantityDetails) {
+      console.log("Price Per Unit:", selectedQuantityDetails.pricePerUnit);
+    } else {
+      console.log("Selected quantity details not found.");
+    }
+  }, [selectedQuantity, selectedQuantityDetails]);
+
+  const inquire = () => {
+    // Implement logic for inquiring about the product
+    // This can include sending an inquiry to the seller or displaying contact information
+    // For now, let's display an alert as an example:
+    Alert.alert("Inquire", "You can inquire about this product here.");
+  };
 
   const addToCart = async () => {
     const user = firebase.auth().currentUser;
@@ -32,18 +47,25 @@ const ProductDetails = ({ route, navigation }) => {
       return;
     }
 
+    if (!selectedQuantityDetails) {
+      console.error("Selected quantity details not found.");
+      return;
+    }
+
     const updatedProduct = {
-      ...product,
-      variety: selectedVariety,
-      quantity: quantity,
+      name: product.name,
+      type: product.type,
+      pricePerUnit: selectedQuantityDetails.pricePerUnit,
+      quantity: selectedQuantity,
+      items: item,
       userId: user.uid,
     };
-
-    console.log("updatedProduct", updatedProduct);
 
     try {
       await firebase.firestore().collection("cart").add(updatedProduct);
 
+      // Call the updateCartItem function to update the cart item in CartScreen
+      updateCartItem && updateCartItem(updatedProduct, item);
       Alert.alert(
         "Added to Cart",
         "What would you like to do?",
@@ -70,28 +92,18 @@ const ProductDetails = ({ route, navigation }) => {
     }
   };
 
-  const inquire = () => {
-    // Implement logic for inquiring about the product
-    // This can include sending an inquiry to the seller or displaying contact information
-  };
-
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Product Details</Text>
       <View style={styles.card}>
-     
-<Image
-  source={{ uri: product.imageUrl }}
-  style={styles.productImage}
-/>
-
         <View style={styles.productInfo}>
           <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productDescription}>
-            Description: {product.description}
-          </Text>
           <Text style={styles.productType}>Type: {product.type}</Text>
-          <Text style={styles.productPrice}>Price: ${product.price}</Text>
+          {selectedQuantityDetails && (
+            <Text style={styles.productPrice}>
+              Price for {selectedQuantity} ml: Ksh{selectedQuantityDetails.pricePerUnit}
+            </Text>
+          )}
           <Text style={styles.itemsLeft}>Items Left: {product.itemsLeft}</Text>
         </View>
       </View>
@@ -102,18 +114,18 @@ const ProductDetails = ({ route, navigation }) => {
 
         {/* Quantity section */}
         <View style={styles.quantitySection}>
-          <Text style={styles.quantityLabel}>Quantity:</Text>
+          <Text style={styles.quantityLabel}>Number of Items:</Text>
           <View style={styles.quantityButtonsRow}>
             <TouchableOpacity
               style={styles.quantityButton}
-              onPress={() => setQuantity(quantity - 1 >= 1 ? quantity - 1 : 1)}
+              onPress={() => setItem(item - 1 >= 1 ? item - 1 : 1)}
             >
               <Text style={styles.cartActionText}>-</Text>
             </TouchableOpacity>
-            <Text style={styles.quantityValue}>{quantity}</Text>
+            <Text style={styles.quantityValue}>{item} items</Text>
             <TouchableOpacity
               style={styles.quantityButton}
-              onPress={() => setQuantity(quantity + 1)}
+              onPress={() => setItem(item + 1)}
             >
               <Text style={styles.cartActionText}>+</Text>
             </TouchableOpacity>
@@ -139,22 +151,30 @@ const ProductDetails = ({ route, navigation }) => {
             />
             <Text style={styles.buttonText}>Home</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={addToCart}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={addToCart}>
             <Image
               source={require("../assets/icons8-cart-50.png")}
               style={styles.actionButtonImage}
             />
             <Text style={styles.buttonText}>Add to Cart</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cartItemActionButton}
+            onPress={() =>
+              navigation.navigate("CustomerInterface", {
+                product: item,
+                selectedQuantity: item.quantity,
+                updateCartItem,
+              })
+            }
+          >
+            <Text style={styles.cartActionText}>Edit</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -166,7 +186,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 16,
     textAlign: "center",
-    color: "#333",
+    color:'black',
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -189,7 +209,7 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color:'black',
     marginBottom: 8,
   },
   productPrice: {
@@ -200,18 +220,17 @@ const styles = StyleSheet.create({
   },
   productType: {
     fontSize: 18,
-    fontWeight:"bold",
-    color:"#00008B",
+    fontWeight: "bold",
+    color: "#00008B",
     marginBottom: 8,
   },
   productDescription: {
     color: "green",
     marginBottom: 8,
-    fontWeight:'bold',
+    fontWeight: "bold",
   },
- 
   itemsLeft: {
-    color: "#333",
+    color:'black'
   },
   additionalInfoSection: {
     backgroundColor: "#FFFFFF",
@@ -222,7 +241,7 @@ const styles = StyleSheet.create({
   additionalInfoHeader: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color:'black',
     marginBottom: 16,
   },
   quantitySection: {
@@ -231,7 +250,7 @@ const styles = StyleSheet.create({
   quantityLabel: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color:'black'
   },
   quantityButtonsRow: {
     flexDirection: "row",
@@ -253,6 +272,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     paddingHorizontal: 16,
+    color:'black'
   },
   actionButtonsRow: {
     flexDirection: "row",
@@ -275,6 +295,14 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     marginRight: 3,
+  },
+  cartItemActionButton: {
+    flex: 1,
+    backgroundColor: "#007BFF",
+    borderRadius: 4,
+    alignItems: "center",
+    flexDirection: "row",
+    padding: 8,
   },
 });
 

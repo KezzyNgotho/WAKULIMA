@@ -1,27 +1,43 @@
+
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import firebase from "../components/firebase";
 
 const CartScreen = ({ route }) => {
   const { cart } = route.params || { cart: [] };
   const [cartItems, setCartItems] = useState(cart);
+
   const navigation = useNavigation();
 
   useEffect(() => {
-    // Fetch cart items from Firestore based on the user's ID
     const fetchCartItems = async () => {
       const user = firebase.auth().currentUser;
       if (user) {
         const userId = user.uid;
         const cartItemsRef = firebase.firestore().collection("cart");
 
-        // Query the cart items collection for items related to the user
         const snapshot = await cartItemsRef.where("userId", "==", userId).get();
 
         const cartItemList = [];
         snapshot.forEach((doc) => {
-          cartItemList.push({ id: doc.id, ...doc.data() });
+          const itemData = doc.data();
+          const totalPrice = itemData.pricePerUnit * itemData.itemsNumber;
+
+          const itemWithTotalPrice = {
+            id: doc.id,
+            ...itemData,
+            total: totalPrice.toFixed(2),
+          };
+
+          cartItemList.push(itemWithTotalPrice);
         });
 
         setCartItems(cartItemList);
@@ -30,30 +46,27 @@ const CartScreen = ({ route }) => {
       }
     };
 
-    // Call the fetchCartItems function when the component mounts
     fetchCartItems();
   }, []);
 
+  const orderAndPay = () => {
+    navigation.navigate("SelectDeliveryScreen", { cartItems });
+  };
 
-
-  const reduceQuantity = (productId) => {
-    // Reduce the quantity of a product in the cart
+  const updateCartItem = (updatedItem, updatedItems) => {
     const updatedCart = cartItems.map((item) => {
-      if (item.id === productId) {
-        if (item.quantity > 1) {
-          return { ...item, quantity: item.quantity - 1 };
-        }
+      if (item.id === updatedItem.id) {
+        return { ...item, items: updatedItems };
       }
       return item;
     });
     setCartItems(updatedCart);
   };
 
-  const increaseQuantity = (productId) => {
-    // Increase the quantity of a product in the cart
+  const reduceItemsNumber = (productId) => {
     const updatedCart = cartItems.map((item) => {
-      if (item.id === productId) {
-        return { ...item, quantity: item.quantity + 1 };
+      if (item.id === productId && item.items > 1) {
+        return { ...item, items: item.items - 1 };
       }
       return item;
     });
@@ -61,37 +74,36 @@ const CartScreen = ({ route }) => {
   };
 
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cartItems.reduce(
+      (total, item) => total + item.pricePerUnit * item.items,
+      0
+    ).toFixed(2);
   };
 
-  const contactSeller = (_ProductId) => {
+  const contactSeller = (productId) => {
     // Implement your logic to contact the seller here
     // This can include sending a message, making a call, or opening a contact screen
     // You can use navigation to navigate to a contact screen or any other contact method
   };
 
-  const orderAndPay = () => {
-    // Navigate to the screen for selecting delivery
-    navigation.navigate("SelectDeliveryScreen", { cartItems });
-  };
   const removeFromCart = (productId) => {
+    // Call your backend or Firestore to remove the item from the cart
+    // Assuming you have a Firebase Firestore setup
     const user = firebase.auth().currentUser;
     if (user) {
       const userId = user.uid;
       const cartItemsRef = firebase.firestore().collection("cart");
-      
-      // Find the document in Firestore with the matching user and product ID
+  
       cartItemsRef
         .where("userId", "==", userId)
         .where("productId", "==", productId)
         .get()
         .then((querySnapshot) => {
           querySnapshot.forEach((doc) => {
-            // Delete the document from Firestore
             doc.ref
               .delete()
               .then(() => {
-                // Remove the product from the cart items state
+                // Update the cartItems state to remove the item
                 const updatedCart = cartItems.filter((item) => item.id !== productId);
                 setCartItems(updatedCart);
               })
@@ -106,55 +118,86 @@ const CartScreen = ({ route }) => {
     }
   };
   
-
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Shopping Cart</Text>
       <FlatList
-       data={cartItems}
-       renderItem={({ item }) => (
+        data={cartItems}
+        renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cartItemContainer}>
-              <Image source={item.image} style={styles.cartItemImage} />
+              <Image source={{ uri: item.image }} style={styles.cartItemImage} />
               <View style={styles.cartItemDetails}>
                 <Text style={styles.cartItemName}>{item.name}</Text>
-                <Text style={styles.cartItemDescription}>{item.description}</Text>
+                <Text style={styles.type}>Type: {item.type}</Text>
+                <Text style={styles.Description}>Quantities: {item.quantity}</Text>
                 <View style={styles.cartItemQuantity}>
-                  <TouchableOpacity onPress={() => reduceQuantity(item.id)}>
+                  <TouchableOpacity onPress={() => reduceItemsNumber(item.id)}>
                     <Text style={styles.cartActionText}>-</Text>
                   </TouchableOpacity>
-                  <Text>{item.quantity || 0}</Text>
-                  <TouchableOpacity onPress={() => increaseQuantity(item.id)}>
+                  <Text style={styles.quantityLabel}>Items: {item.items}</Text>
+                  <TouchableOpacity onPress={() => updateCartItem(item, item.items + 1)}>
                     <Text style={styles.cartActionText}>+</Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.cartItemPrice}>Price: ${(item.price * item.quantity).toFixed(2)}</Text>
+                <Text style={styles.cartItemPrice}>Price: Ksh {item.pricePerUnit.toFixed(2)}</Text>
+                <Text style={styles.cartItemPrice}>
+                  Total Price: Ksh{(item.pricePerUnit * item.items).toFixed(2)}
+                </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={() => removeFromCart(item.id)}>
-  <Text style={styles.cartActionText}>Remove</Text>
-</TouchableOpacity>
+            
+            <View style={styles.actionContainer}>
+           
+                <TouchableOpacity
+                  onPress={() => removeFromCart(item.id)}
+                  style={styles.actionButton}
+                >
+                  <Image
+                    source={require("../assets/icons8-delete-30.png")} // Replace with actual icon image source
+                    style={styles.actionIcon}
+                  />
+                  <Text style={styles.actionText}>Remove</Text>
+                </TouchableOpacity>
 
-          </View>
+                {/* "Contact Seller" Action */}
+                <TouchableOpacity
+                  onPress={() => contactSeller(item.id)}
+                  style={styles.actionButton}
+                >
+                  <Image
+                    source={require("../assets/icons8-call-30.png")} // Replace with actual icon image source
+                    style={styles.actionIcon}
+                  />
+                  <Text style={styles.actionText}>Contact Seller</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+     
         )}
         keyExtractor={(item) => item.id.toString()}
       />
-      <Text style={styles.total}>Total: ${calculateTotal().toFixed(2)}</Text>
-      <TouchableOpacity onPress={() => contactSeller(item.id)}>
-        <Text style={styles.cartActionText}>Contact Seller</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.orderButton} onPress={orderAndPay}>
+
+      <Text style={styles.total}>Total: Ksh{calculateTotal()}</Text>
+      <TouchableOpacity onPress={orderAndPay} style={styles.orderButton}>
         <Text style={styles.orderButtonText}>Order and Pay</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
+  Description:{
+color:'orange',
+fontWeight:'bold'
+  },
   container: {
     flex: 1,
     padding: 16,
     backgroundColor: "#f5f5f5",
+  },
+  type:{
+color:'green',
+fontWeight:'bold'
   },
   header: {
     fontSize: 24,
@@ -223,6 +266,42 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#007BFF",
     marginHorizontal: 8,
+  },
+  quantityLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+    marginRight: 8,
+  },
+  itemCountLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  actionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#007BFF",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  actionIcon: {
+    width: 16, // Adjust icon size as needed
+    height: 16,
+    marginRight: 4,
+  },
+  actionText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#fff",
   },
 });
 

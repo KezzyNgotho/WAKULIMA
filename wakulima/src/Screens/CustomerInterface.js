@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,49 +7,46 @@ import {
   FlatList,
   Image,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {TextInput} from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
 import firebase from '../components/firebase';
+import { Button, Card, Title, TextInput } from 'react-native-paper';
 
 const CustomerInterface = () => {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
 
   useEffect(() => {
     const productsRef = firebase.firestore().collection('products');
 
-    const unsubscribe = productsRef.onSnapshot(snapshot => {
+    productsRef.onSnapshot((snapshot) => {
       const productList = [];
-      snapshot.forEach(doc => {
-        productList.push({id: doc.id, ...doc.data()});
+      snapshot.forEach((doc) => {
+        productList.push({ id: doc.id, ...doc.data() });
       });
       setProducts(productList);
-      setFilteredProducts(productList); // Initialize filtered products with all products
     });
-
-    return () => unsubscribe();
   }, []);
 
-  const handleSearch = query => {
-    // Filter products based on the search query
-    const filtered = products.filter(product => {
-      if (product.productName && query) {
-        const productNameLower = product.productName.toLowerCase();
+  const handleSearch = (query) => {
+    const filtered = products.filter((product) => {
+      if (product.name && query) {
+        const productNameLower = product.name.toLowerCase();
         const queryLower = query.toLowerCase();
         return productNameLower.includes(queryLower);
       }
-      return true; // Show all products when the query is empty
+      return true;
     });
 
     setFilteredProducts(filtered);
     setSearchQuery(query);
   };
 
-  const navigateToProductDetails = product => {
-    // Use the navigation hook to navigate to the ProductDetails screen
-    navigation.navigate('ProductDetails', {product});
+  const navigateToProductDetails = (product) => {
+    navigation.navigate('ProductDetails', { product, selectedQuantity });
   };
 
   return (
@@ -81,46 +78,55 @@ const CustomerInterface = () => {
         value={searchQuery}
         onChangeText={handleSearch}
       />
-      <FlatList
-        data={filteredProducts}
-        renderItem={({item}) => (
-          <TouchableOpacity
-            style={styles.productCard}
-            onPress={() => navigateToProductDetails(item)}>
-            <View style={styles.productCardContent}>
-              {/* Display the product image */}
-              <Image
-                source={{uri: item.imageUrl}}
-                style={styles.productImage}
-              />
 
-             
-              <Text style={styles.productName}>{item.name}</Text>
-              <Text style={styles.productDescription}>
-                Description: {item.productDescription}
-              </Text>
-              <Text style={styles.productType}>Type: {item.type}</Text>
-              <Text style={styles.productPrice}>
-                Price: ${item.price ? item.price.toFixed(2) : 'N/A'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        keyExtractor={item => item.id}
+      <FlatList
+        data={filteredProducts.length > 0 ? filteredProducts : products}
         numColumns={2}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.productCard}>
+            <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+            <Title style={styles.productName}>{item.name}</Title>
+            <Text style={styles.productType}>Type: {item.type}</Text>
+            {item.quantitiesAndPrices ? (
+  <View>
+    <Text style={styles.quantityLabel}>Select Quantity:</Text>
+    <View style={styles.pickerContainer}>
+      <Picker
+        style={styles.picker}
+        selectedValue={selectedQuantity}
+        onValueChange={(itemValue) => setSelectedQuantity(itemValue)}
+      >
+        <Picker.Item label="Select Quantity" value="" />
+        {item.quantitiesAndPrices.map((qap, index) => (
+          <Picker.Item
+            key={index}
+            label={`${qap.quantity} ml - Ksh ${qap.pricePerUnit}`}
+            value={qap.quantity}
+          />
+        ))}
+      </Picker>
+    </View>
+    <Button
+      mode="contained"
+      onPress={() => navigateToProductDetails(item)}
+      style={styles.viewDetailsButton}
+    >
+      View Details
+    </Button>
+  </View>
+) : (
+  <Text>N/A</Text>
+)}
+
+          </View>
+        )}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  productImage: {
-    width: 80,
-    height: 80,
-    resizeMode: 'cover',
-    marginBottom: 8,
-    backgroundColor:'transparent',
-  },
   container: {
     flex: 1,
     padding: 16,
@@ -134,8 +140,8 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 24,
-    fontFamily: 'YourCustomFont-Bold', // Replace with your custom font or system font
-    color: '#333',
+    fontFamily: 'YourCustomFont-Bold',
+    color: 'black',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -163,8 +169,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
-    width: '48%', // Adjust the width to fit two items in a row
-    marginHorizontal: '1%', // Add horizontal margin for spacing between items
+    width: '48%',
+    marginHorizontal: '1%',
     flexDirection: 'column',
     alignItems: 'center',
   },
@@ -173,31 +179,19 @@ const styles = StyleSheet.create({
     height: 80,
     resizeMode: 'cover',
     marginRight: 16,
-  },
-  productCardContent: {
-    flex: 1,
+    backgroundColor: 'transparent',
   },
   productName: {
     fontSize: 18,
-    fontFamily: 'YourCustomFont-Bold', // Replace with your custom font or system font
-    color: 'green',
-    marginBottom: 8,
-    fontWeight: 'bold',
-  },
-  productDescription: {
+    fontFamily: 'YourCustomFont-Bold',
     color: 'black',
     marginBottom: 8,
-    fontWeight: 'bold,',
-    // Replace with your custom font or system font
-  },
-  productPrice: {
-    color: 'orange',
-    fontSize: 18, // Replace with your custom font or system font
+    fontWeight: 'bold',
   },
   productType: {
     color: '#00008B',
     fontSize: 14,
-    fontWeight: 'bold', // Replace with your custom font or system font
+    fontWeight: 'bold',
   },
   actionButtonImage: {
     width: 29,
@@ -221,6 +215,29 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 18,
     color: 'gray',
+  },
+  quantityLabel: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 2,
+    marginBottom: 5,
+    backgroundColor: 'white', // Background color for the input-like container
+  },
+  picker: {
+    height: 20,
+    color: 'black',
+  },
+  viewDetailsButton: {
+    marginTop: 10,
+    backgroundColor: 'orange',
+    borderRadius: 4,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

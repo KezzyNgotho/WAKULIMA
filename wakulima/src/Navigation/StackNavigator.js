@@ -12,7 +12,7 @@ import DeliverySelectionScreen from '../Screens/DeliverySelectionScreen';
 import PaymentSelectionScreen from '../Screens/PaymentSelectionScreen';
 import OrderConfirmationScreen from '../Screens/OrderConfirmationScreen';
 import SalesOrdersAdminScreen from '../Screens/SalesOrdersAdminScreen';
-import SalespersonScreen from '../Screens/SalespersonScreen';
+import AdminLogoutScreen from '../Screens/AdminLogoutScreen';
 import BottomTabNavigator from './TabNavigator';
 import AdminBottomTabNavigator from './AdminStacKNavigator'; 
 import { AuthProvider, useAuth } from '../components/AuthContext';// Changed this import
@@ -22,6 +22,8 @@ import SalespersonInterface from '../Screens/SalespersonInterface';
 import RegistrationSuccessScreen from '../Screens/RegistrationSuccessScreen';
 import NotificationsScreen from '../Screens/NotificationsScreen';
 import LogoutScreen from '../Screens/LogOutScreen';
+import MessageScreen from '../Screens/MessageScreen';
+import LocationSelectionScreen from '../Screens/LocationSelectionScreen';
 const Stack = createNativeStackNavigator();
 
 const MainStackNavigator = () => {
@@ -50,11 +52,13 @@ const MainStackNavigator = () => {
         name="Payment"
         component={PaymentMode}
       />
+      
       <Stack.Screen
         options={{ headerShown: false }}
         name="Cart"
         component={CartScreen}
       />
+       
       <Stack.Screen
         options={{ headerShown: false }}
         name="ProductDetails"
@@ -81,6 +85,8 @@ const MainStackNavigator = () => {
         component={NotificationsScreen}
       />
     </Stack.Navigator>
+    
+
   );
 };
 
@@ -114,6 +120,21 @@ const AdminStackNavigator = () => {
       <Stack.Screen
         name="SalesOrdersAdminScreen"
         component={SalesOrdersAdminScreen}
+      />
+       <Stack.Screen
+        options={{ headerShown: false }}
+        name="Messages"
+        component={MessageScreen}
+      />
+      <Stack.Screen
+        options={{ headerShown: false }}
+        name="AdminLogout"
+        component={AdminLogoutScreen}
+      />
+        <Stack.Screen
+        options={{ headerShown: false }}
+        name="LocationSelection"
+        component={LocationSelectionScreen}
       />
        <Stack.Screen
         name="OrdersReception"

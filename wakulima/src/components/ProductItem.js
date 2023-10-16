@@ -1,47 +1,33 @@
 import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 
-const ProductItem = ({ item, totalSales, analyzeProductState }) => {
+function ProductItem({ item, isSelected, toggleProductSelection, onEditProduct }) {
   return (
-    <View style={styles.productCard}>
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productDescription}>{item.description}</Text>
-      <Text style={styles.salesInfo}>Total Sales: ${totalSales ? totalSales.toFixed(2) : 'N/A'}</Text>
-
-      <Text style={styles.productStock}>In Stock: {item.stock}</Text>
-      <Text style={styles.productAnalysis}>Analysis: {analyzeProductState(item)}</Text>
-    </View>
+    <TouchableOpacity onPress={() => toggleProductSelection(item.id)}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            backgroundColor: isSelected ? 'green' : 'gray',
+            borderRadius: 12, // Make it circular
+            marginRight: 8,
+          }}
+        ></View>
+        <Text>{item.name}</Text>
+        <TouchableOpacity
+          style={{ marginLeft: 'auto' }}
+          onPress={() => onEditProduct(item)}
+        >
+          <Image
+            source={require('../assets/icons8-edit-30.png')}
+            style={{ width: 30, height: 30 }}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
-};
-
-const styles = StyleSheet.create({
-  productCard: {
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: 'white', // Set your desired background color
-    padding: 16,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  productDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  salesInfo: {
-    fontSize: 14,
-  },
-  productStock: {
-    fontSize: 14,
-    color: 'green',
-  },
-  productAnalysis: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'blue',
-  },
-});
+}
 
 export default ProductItem;

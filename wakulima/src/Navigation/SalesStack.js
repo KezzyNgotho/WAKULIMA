@@ -47,10 +47,10 @@ const SalesBottomTabNavigator = () => {
         name="Orders" component={OrdersScreen} />
       <Tab.Screen
         options={{
-          tabBarLabel: 'LogOut',
+          tabBarLabel: 'Profile',
           tabBarIcon: ({ color }) => (
             <Image
-               source={require('../assets/icons8-logout-30.png')}  
+               source={require('../assets/icons8-male-user-24.png')}  
               style={{  width: 37, height: 30 }}
             />
           ),

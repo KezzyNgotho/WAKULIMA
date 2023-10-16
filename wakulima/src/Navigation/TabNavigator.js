@@ -12,6 +12,7 @@ import PaymentMode from "../Screens/PaymentMode";
 import AvailableProducts from '../Screens/AvailableProducts'
 import CustomerOrdersScreen from "../Screens/CustomerOrdersScreen";
 import FeedScreen from "../Screens/FeedsScreen";
+import CustomerProfileScreen from "../Screens/CustomerProfileScreen";
 
 const Tab = createMaterialBottomTabNavigator();
 
@@ -49,15 +50,15 @@ const BottomTabNavigator = () => {
         name="Orders" component={CustomerOrdersScreen} />
       <Tab.Screen
         options={{
-          tabBarLabel: 'Feeds',
+          tabBarLabel: 'Profile',
           tabBarIcon: ({ color }) => (
             <Image
-               source={require('../assets/icons8-feed-50.png')}  
+               source={require('../assets/icons8-male-user-24.png')}  
               style={{  width: 37, height: 30 }}
             />
           ),
         }}
-        name="Feeds" component={FeedScreen} />
+        name="Profile" component={CustomerProfileScreen} />
      
     </Tab.Navigator>
   );

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -42,14 +43,14 @@ const CustomerOrdersScreen = () => {
   // Render a single order item
   const renderOrderItem = ({ item }) => {
     return (
-      <TouchableOpacity style={styles.orderItem}>
+      <View style={styles.orderItem}>
         <Text style={styles.orderNumber}>Order #{item.orderNumber}</Text>
         <Text style={styles.orderDate}>
           Order Date: {item.orderDate.toDate().toLocaleString()}
         </Text>
         <Text style={styles.orderStatus}>Status: {item.status}</Text>
-        <Text style={styles.orderAddress}>Delivery Address:</Text>
-        <Text style={styles.addressText}>{item.deliveryAddress}</Text>
+        <Text style={styles.orderAddress}>Delivery Address: {item.deliveryAddress}</Text>
+        <Text style={styles.orderAddress}>Delivery Method: {item.deliveryMethod}</Text>
         <Text style={styles.orderFees}>
           Delivery Fees: ${item.deliveryFees ? item.deliveryFees.toFixed(2) : 'N/A'}
         </Text>
@@ -60,23 +61,17 @@ const CustomerOrdersScreen = () => {
           Total: ${item.totalAmount ? item.totalAmount.toFixed(2) : 'N/A'}
         </Text>
         {/* Render order items and their details here */}
-        <FlatList
-          data={item.items}
-          renderItem={({ item: orderItem }) => (
-            <View style={styles.orderItemDetails}>
-              <Text style={styles.productName}>{orderItem.name}</Text>
-              <Text style={styles.productPrice}>
-                Price: ${orderItem.price.toFixed(2)}
-              </Text>
-              <Text style={styles.productQuantity}>
-                Quantity: {orderItem.quantity}
-              </Text>
-              {/* Add more details as needed */}
-            </View>
-          )}
-          keyExtractor={(orderItem) => orderItem.id}
-        />
-      </TouchableOpacity>
+        {item.productsOrdered.map((product, index) => (
+          <View key={index} style={styles.orderItemDetails}>
+            <Text style={styles.productName}>Product Name: {product.productName}</Text>
+            <Text style={styles.productType}>Product Type: {product.productType}</Text>
+            <Text style={styles.productItems}>Items Number: {product.ItemsNumber}</Text>
+            <Text style={styles.productPrice}>Price: Ksh {product.productPrice.toFixed(2)}</Text>
+            <Text style={styles.productQuantity}>Quantity: {product.productQuantity}</Text>
+            {/* Add more details as needed */}
+          </View>
+        ))}
+      </View>
     );
   };
 
@@ -103,6 +98,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
+    color: "#333", // Change the title text color
   },
   orderItem: {
     backgroundColor: "#FFFFFF",
@@ -111,17 +107,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
-    
   },
   orderNumber: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
-    color:'black',
+    color: "black",
   },
   orderDate: {
     fontSize: 14,
-    color:'green',
+    color: "green",
     marginBottom: 8,
   },
   orderStatus: {
@@ -133,19 +128,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
-  },
-  addressText: {
-    fontSize: 16,
-    marginBottom: 8,
-    color:'black',
+    color:'black'
   },
   orderFees: {
     fontSize: 16,
     marginBottom: 8,
+    color:'black'
   },
   orderPaymentMethod: {
     fontSize: 16,
     marginBottom: 8,
+    color:"black"
   },
   orderTotal: {
     fontSize: 18,
@@ -159,12 +152,23 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: "bold",
+    color:"black"
   },
   productPrice: {
     fontSize: 16,
+    color:"black"
   },
   productQuantity: {
     fontSize: 16,
+    color:"black"
+  },
+  productType: {
+    fontSize: 16,
+    color:"black"
+  },
+  productItems: {
+    fontSize: 16,
+    color:"black"
   },
   ordersList: {
     flex: 1,
